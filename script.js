@@ -26,7 +26,7 @@ const TIME_SLOTS = [
 
 const defaultData = {
     title: 'Cronograma Geral de Manutenção Preventiva',
-    subtitle: 'Sistemas de Climatização (HVAC), Refrigeração e Infraestrutura Elétrica • Unidade MGCEN00',
+    subtitle: 'Sistemas de Climatização (HVAC), Refrigeração e Infraestrutura Elétrica • Unidade BHE ES',
     weeks: [
         // SEMANA 1
         {
@@ -251,14 +251,22 @@ function updateCloudBadge(state, text) {
     const badge = document.getElementById('cloud-sync-badge');
     if (!badge) return;
 
-    badge.className = 'btn-icon cloud-sync-badge ' + state;
+    badge.className = 'cloud-sync-badge ' + state;
+    const statusTextEl = badge.querySelector('.cloud-status-text');
+    const svgEl = badge.querySelector('.cloud-icon-svg');
 
     if (state === 'online') {
-        badge.title = 'Sincronizado na nuvem (Tempo real) · Clique para atualizar';
+        badge.title = 'Sincronizado na nuvem em tempo real (Lucide Cloud Engine) · Clique para atualizar';
+        if (statusTextEl) statusTextEl.textContent = 'NUVEM SINC';
+        if (svgEl) svgEl.innerHTML = '<path d="M17.5 19a5 5 0 0 0 2-9.19M18 10a5 5 0 0 0-3.79 8.25M6.5 19h11a4.5 4.5 0 0 0 2.5-8.24 7 7 0 0 0-13.44-2.12A4.5 4.5 0 0 0 6.5 19z"></path><polyline points="9 13 11 15 15 11"></polyline>';
     } else if (state === 'syncing') {
         badge.title = 'Enviando alterações para a nuvem...';
+        if (statusTextEl) statusTextEl.textContent = 'SALVANDO...';
+        if (svgEl) svgEl.innerHTML = '<path d="M17.5 19a5 5 0 0 0 2-9.19M18 10a5 5 0 0 0-3.79 8.25M6.5 19h11a4.5 4.5 0 0 0 2.5-8.24 7 7 0 0 0-13.44-2.12A4.5 4.5 0 0 0 6.5 19z"></path><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line>';
     } else {
         badge.title = 'Modo Local (dados salvos no armazenamento local)';
+        if (statusTextEl) statusTextEl.textContent = 'MODO LOCAL';
+        if (svgEl) svgEl.innerHTML = '<path d="m2 2 20 20"></path><path d="M5.782 5.782A4.5 4.5 0 0 0 6.5 19h11a4.5 4.5 0 0 0 2.5-.75"></path><path d="M21.5 15.5A4.5 4.5 0 0 0 18 10a5 5 0 0 0-3.79-3.75"></path>';
     }
 }
 

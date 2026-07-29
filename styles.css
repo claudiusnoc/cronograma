@@ -195,64 +195,98 @@ body {
     gap: 6px;
 }
 
-/* DISTILLED LIGHT CLOUD SYNC BADGE */
+/* HIGH-PRECISION INDUSTRIAL EXECUTIVE CLOUD SYNC COMMAND BADGE */
 .cloud-sync-badge {
-    position: relative;
-    color: #64748B;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-.cloud-sync-badge .cloud-dot {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 5px;
-    height: 5px;
+.cloud-sync-badge:active {
+    transform: scale(0.96);
+}
+
+.cloud-dot-pulse {
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
+    flex-shrink: 0;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* STATE 1: ONLINE (QUIET EMERALD DOT) */
+.cloud-status-text {
+    font-variant-numeric: tabular-nums;
+    text-transform: uppercase;
+}
+
+/* STATE 1: ONLINE (EMERALD LIVE SYNC BADGE) */
 .cloud-sync-badge.online {
-    color: #64748B;
+    background-color: #F0FDF4;
+    border-color: #BBF7D0;
+    color: #15803D;
 }
 .cloud-sync-badge.online:hover {
-    color: #0F172A;
-    background-color: #F8FAFC;
-    border-color: #CBD5E1;
+    background-color: #DCFCE7;
+    border-color: #86EFAC;
+    color: #166534;
 }
-.cloud-sync-badge.online .cloud-dot {
+.cloud-sync-badge.online .cloud-dot-pulse {
     background-color: #10B981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    animation: livePulse 2s infinite;
 }
 
-/* STATE 2: SYNCING (QUIET BLUE ORBIT) */
+/* STATE 2: SYNCING (SKY ORBIT UPLOAD BADGE) */
 .cloud-sync-badge.syncing {
-    color: #0EA5E9;
+    background-color: #F0F9FF;
+    border-color: #BAE6FD;
+    color: #0369A1;
 }
-.cloud-sync-badge.syncing .cloud-dot {
+.cloud-sync-badge.syncing .cloud-dot-pulse {
     background-color: #0EA5E9;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25);
 }
 .cloud-sync-badge.syncing .cloud-icon-svg {
-    animation: cloudRotate 1.2s linear infinite;
+    animation: cloudPulseFloat 1s ease-in-out infinite alternate;
 }
 
-/* STATE 3: OFFLINE (QUIET AMBER DOT) */
+/* STATE 3: OFFLINE (AMBER LOCAL MODE BADGE) */
 .cloud-sync-badge.offline {
-    color: #D97706;
+    background-color: #FEF3C7;
+    border-color: #FDE68A;
+    color: #B45309;
 }
-.cloud-sync-badge.offline .cloud-dot {
+.cloud-sync-badge.offline .cloud-dot-pulse {
     background-color: #D97706;
 }
 
 .cloud-icon-svg {
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
     stroke: currentColor;
     transition: color 0.2s ease, transform 0.2s ease;
 }
 
-@keyframes cloudRotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+@keyframes livePulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes cloudPulseFloat {
+    from { transform: translateY(0); }
+    to { transform: translateY(-2px); }
 }
 
 /* LIGHT PRECISION ICON-ONLY HEADER CONTROLS */
@@ -1731,6 +1765,27 @@ body.dark-theme .legend-item.active {
     background-color: #38BDF8;
     border-color: #38BDF8;
     color: #0F172A;
+}
+
+body.dark-theme .cloud-sync-badge.online {
+    background-color: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #34D399;
+}
+body.dark-theme .cloud-sync-badge.online:hover {
+    background-color: rgba(16, 185, 129, 0.22);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #6EE7B7;
+}
+body.dark-theme .cloud-sync-badge.syncing {
+    background-color: rgba(14, 165, 233, 0.14);
+    border-color: rgba(14, 165, 233, 0.35);
+    color: #38BDF8;
+}
+body.dark-theme .cloud-sync-badge.offline {
+    background-color: rgba(245, 158, 11, 0.14);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #FBBF24;
 }
 
 body.dark-theme .btn-icon {
