@@ -250,9 +250,16 @@ let isSavingToCloud = false;
 function updateCloudBadge(state, text) {
     const badge = document.getElementById('cloud-sync-badge');
     if (!badge) return;
-    const label = badge.querySelector('.cloud-text');
-    badge.className = 'cloud-sync-badge ' + state;
-    if (label) label.textContent = text;
+
+    badge.className = 'btn-icon cloud-sync-badge ' + state;
+
+    if (state === 'online') {
+        badge.title = 'Sincronizado na nuvem (Tempo real) · Clique para atualizar';
+    } else if (state === 'syncing') {
+        badge.title = 'Enviando alterações para a nuvem...';
+    } else {
+        badge.title = 'Modo Local (dados salvos no armazenamento local)';
+    }
 }
 
 async function syncFromCloud(isInitial = false) {
@@ -450,16 +457,19 @@ function renderHourlyGridDashboard() {
 
         card.appendChild(header);
 
-        // Header Row (Hora | Segunda ... Sexta)
+        // Header Row (Hora | SEG ... SEX)
         const headerRow = document.createElement('div');
         headerRow.className = 'timeline-header-row';
         headerRow.innerHTML = `
-            <div class="time-header-cell">HORA</div>
-            <div class="day-header-cell">SEGUNDA</div>
-            <div class="day-header-cell">TERÇA</div>
-            <div class="day-header-cell">QUARTA</div>
-            <div class="day-header-cell">QUINTA</div>
-            <div class="day-header-cell">SEXTA</div>
+            <div class="time-header-cell" title="Horário de Operação (08:00 - 18:00)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>HORA</span>
+            </div>
+            <div class="day-header-cell"><span class="day-code">SEG</span></div>
+            <div class="day-header-cell"><span class="day-code">TER</span></div>
+            <div class="day-header-cell"><span class="day-code">QUA</span></div>
+            <div class="day-header-cell"><span class="day-code">QUI</span></div>
+            <div class="day-header-cell"><span class="day-code">SEX</span></div>
         `;
         card.appendChild(headerRow);
 
@@ -501,7 +511,12 @@ function renderHourlyGridDashboard() {
         // Fixed Lunch Break Row
         const lunch = document.createElement('div');
         lunch.className = 'lunch-break-row';
-        lunch.innerHTML = `<div class="lunch-break-text">PAUSA PARA ALMOÇO (12:00 - 13:30) · FIXO</div>`;
+        lunch.innerHTML = `
+            <div class="lunch-break-text">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>PAUSA PARA ALMOÇO (12:00 - 13:30)</span>
+            </div>
+        `;
         grid.appendChild(lunch);
 
         // Render Empty Clickable Cells for Creating Task & Context Menu
@@ -621,12 +636,15 @@ function renderHourlyGridDashboard() {
                 });
 
             } else {
-                taskCard.title = `${task.title}\n${task.desc ? task.desc + '\n' : ''}Horário: ${rowToTime(task.startRow)} (${formatDurationText(task.duration)})\n(Clique para editar | Botão direito para opções)`;
+                // Task render (custom glassmorphism tooltip handling via global mouseover listener)
 
                 if (task.duration === 1) {
                     taskCard.innerHTML = `
                         <div class="task-card-header">
-                            <span class="task-time-badge">${rowToTime(task.startRow)} · ${formatDurationText(task.duration)}</span>
+                            <div class="task-header-meta">
+                                <span class="task-category-dot"></span>
+                                <span class="task-time-text">${rowToTime(task.startRow)} · ${formatDurationText(task.duration)}</span>
+                            </div>
                             <button class="task-delete-btn" title="Excluir tarefa">×</button>
                         </div>
                         <div class="task-card-title">${task.title}</div>
@@ -635,7 +653,10 @@ function renderHourlyGridDashboard() {
                 } else {
                     taskCard.innerHTML = `
                         <div class="task-card-header">
-                            <span class="task-time-badge">${rowToTime(task.startRow)} · ${formatDurationText(task.duration)}</span>
+                            <div class="task-header-meta">
+                                <span class="task-category-dot"></span>
+                                <span class="task-time-text">${rowToTime(task.startRow)} · ${formatDurationText(task.duration)}</span>
+                            </div>
                             <button class="task-delete-btn" title="Excluir tarefa">×</button>
                         </div>
                         <div class="task-card-title">${task.title}</div>
@@ -802,7 +823,7 @@ function onPointerMove(e) {
         activeTaskObj.duration = newDuration;
         activeTaskEl.style.gridRow = `${activeTaskObj.startRow} / span ${activeTaskObj.duration}`;
 
-        const badge = activeTaskEl.querySelector('.task-time-badge');
+        const badge = activeTaskEl.querySelector('.task-time-text') || activeTaskEl.querySelector('.task-time-badge');
         if (badge) {
             badge.textContent = `${rowToTime(activeTaskObj.startRow)} · ${formatDurationText(newDuration)}`;
         }
@@ -844,7 +865,7 @@ function onPointerMove(e) {
             activeTaskEl.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.04) rotate(-0.5deg)`;
         }
 
-        const badge = activeTaskEl.querySelector('.task-time-badge');
+        const badge = activeTaskEl.querySelector('.task-time-text') || activeTaskEl.querySelector('.task-time-badge');
         if (badge) {
             badge.textContent = `${rowToTime(previewRow)} · ${formatDurationText(activeTaskObj.duration)}${isCollision ? ' 🛑 (Ocupado)' : ''}`;
         }
@@ -856,6 +877,8 @@ function onPointerUp() {
 
     document.removeEventListener('pointermove', onPointerMove);
     document.removeEventListener('pointerup', onPointerUp);
+
+    const wasResizing = (interactionType === 'resize');
 
     if (interactionType === 'drag' && wasDraggingOrResizing && activeTaskEl) {
         const gridEl = activeTaskEl.closest('.timeline-grid');
@@ -894,7 +917,7 @@ function onPointerUp() {
             settlingEl.style.gridColumn = `${newDay + 1}`;
             settlingEl.style.gridRow = `${newRow} / span ${activeTaskObj.duration}`;
 
-            const badge = settlingEl.querySelector('.task-time-badge');
+            const badge = settlingEl.querySelector('.task-time-text') || settlingEl.querySelector('.task-time-badge');
             if (badge) {
                 badge.textContent = `${rowToTime(newRow)} · ${formatDurationText(activeTaskObj.duration)}`;
             }
@@ -913,6 +936,10 @@ function onPointerUp() {
     }
 
     saveData();
+
+    if (wasResizing && wasDraggingOrResizing) {
+        renderHourlyGridDashboard();
+    }
 
     activeTaskObj = null;
     activeTaskEl = null;
@@ -1370,13 +1397,24 @@ document.getElementById('btn-delete-task').addEventListener('click', async () =>
 document.getElementById('btn-add-week').addEventListener('click', () => {
     recordState();
     const weekNum = appData.weeks.length + 1;
+    const newWeekId = 'w' + Date.now();
     appData.weeks.push({
-        id: 'w' + Date.now(),
+        id: newWeekId,
         title: `Semana ${weekNum} - Novo Ciclo`,
         tasks: []
     });
     saveData();
     renderHourlyGridDashboard();
+
+    // ROLA SUAVEMENTE ATÉ A NOVA SEMANA CRIADA
+    setTimeout(() => {
+        const newWeekEl = document.querySelector(`.week-card[data-week-id="${newWeekId}"]`);
+        if (newWeekEl) {
+            newWeekEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            newWeekEl.classList.add('week-card-highlight');
+            setTimeout(() => newWeekEl.classList.remove('week-card-highlight'), 1500);
+        }
+    }, 50);
 });
 
 document.getElementById('btn-export').addEventListener('click', () => {
@@ -1543,9 +1581,138 @@ function setupZoomController() {
     });
 }
 
+// DARK MODE / LIGHT MODE THEME CONTROLLER SYSTEM
+let isDarkMode = localStorage.getItem('mgcen00_dark_theme') === 'true';
+
+function applyThemeState() {
+    const body = document.body;
+    const themeBtn = document.getElementById('btn-theme-toggle');
+    if (isDarkMode) {
+        body.classList.add('dark-theme');
+        if (themeBtn) {
+            themeBtn.title = 'Alternar para Modo Claro';
+            themeBtn.setAttribute('aria-label', 'Alternar Modo Claro');
+            themeBtn.classList.add('active');
+            // Sun Icon
+            themeBtn.querySelector('svg').innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+        }
+    } else {
+        body.classList.remove('dark-theme');
+        if (themeBtn) {
+            themeBtn.title = 'Alternar para Modo Escuro';
+            themeBtn.setAttribute('aria-label', 'Alternar Modo Escuro');
+            themeBtn.classList.remove('active');
+            // Moon Icon
+            themeBtn.querySelector('svg').innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+        }
+    }
+}
+
+function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('mgcen00_dark_theme', isDarkMode ? 'true' : 'false');
+    applyThemeState();
+    showToast(isDarkMode ? '🌙 Modo Escuro Ativado' : '☀️ Modo Claro Ativado');
+}
+
+function setupThemeController() {
+    applyThemeState();
+    const themeBtn = document.getElementById('btn-theme-toggle');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleDarkMode);
+    }
+}
+
+// REFINED FLOATING GLASS TOOLTIP CONTROLLER SYSTEM
+const glassTooltip = document.getElementById('task-floating-tooltip');
+const ttDot = document.getElementById('tt-dot');
+const ttTime = document.getElementById('tt-time');
+const ttTitle = document.getElementById('tt-title');
+const ttDesc = document.getElementById('tt-desc');
+
+let currentHoverTaskEl = null;
+
+document.addEventListener('mouseover', (e) => {
+    const taskCard = e.target.closest('.task-card');
+    if (taskCard && !editingInlineTaskId && !wasDraggingOrResizing) {
+        currentHoverTaskEl = taskCard;
+        const weekId = taskCard.dataset.weekId;
+        const taskId = taskCard.dataset.taskId;
+        const week = appData.weeks.find(w => w.id === weekId);
+        if (week) {
+            const task = week.tasks.find(t => t.id === taskId);
+            if (task && glassTooltip) {
+                // Populate tooltip contents
+                const timeText = `${rowToTime(task.startRow)} · ${formatDurationText(task.duration)}`;
+                ttTime.textContent = timeText;
+                ttTitle.textContent = task.title || 'Sem Título';
+                ttDesc.textContent = task.desc ? task.desc : 'Sem observações adicionais.';
+                
+                // Color dot
+                if (ttDot) {
+                    if (task.category === 'cat-hvac') ttDot.style.backgroundColor = '#0284C7';
+                    else if (task.category === 'cat-elec') ttDot.style.backgroundColor = '#D97706';
+                    else ttDot.style.backgroundColor = '#16A34A';
+                }
+
+                // Remove native title attribute to suppress raw browser tooltip
+                if (taskCard.hasAttribute('title')) {
+                    taskCard.dataset.nativeTitle = taskCard.getAttribute('title');
+                    taskCard.removeAttribute('title');
+                }
+
+                glassTooltip.classList.remove('hidden');
+                updateTooltipPosition(e);
+            }
+        }
+    }
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (currentHoverTaskEl && glassTooltip && !glassTooltip.classList.contains('hidden')) {
+        updateTooltipPosition(e);
+    }
+});
+
+document.addEventListener('mouseout', (e) => {
+    if (currentHoverTaskEl) {
+        const related = e.relatedTarget ? e.relatedTarget.closest('.task-card') : null;
+        if (related !== currentHoverTaskEl) {
+            // Restore native title attribute if needed
+            if (currentHoverTaskEl.dataset.nativeTitle) {
+                currentHoverTaskEl.setAttribute('title', currentHoverTaskEl.dataset.nativeTitle);
+                delete currentHoverTaskEl.dataset.nativeTitle;
+            }
+            currentHoverTaskEl = null;
+            if (glassTooltip) glassTooltip.classList.add('hidden');
+        }
+    }
+});
+
+function updateTooltipPosition(e) {
+    if (!glassTooltip) return;
+    const padding = 15;
+    let x = e.clientX + padding;
+    let y = e.clientY + padding;
+
+    const tooltipWidth = glassTooltip.offsetWidth || 260;
+    const tooltipHeight = glassTooltip.offsetHeight || 120;
+
+    if (x + tooltipWidth > window.innerWidth - 10) {
+        x = e.clientX - tooltipWidth - padding;
+    }
+    if (y + tooltipHeight > window.innerHeight - 10) {
+        y = e.clientY - tooltipHeight - padding;
+    }
+
+    glassTooltip.style.left = `${Math.max(10, x)}px`;
+    glassTooltip.style.top = `${Math.max(10, y)}px`;
+}
+
 // Init
 loadData();
 applyZoomOutState();
+setupThemeController();
 renderHourlyGridDashboard();
 setupCategoryFilters();
 setupZoomController();
