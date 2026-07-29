@@ -1,0 +1,91 @@
+{
+  "title": "Cronograma Geral de Manutenção Preventiva",
+  "subtitle": "Sistemas de Climatização (HVAC), Refrigeração e Infraestrutura Elétrica • Unidade MGCEN00",
+  "weeks": [
+    {
+      "id": "w1",
+      "title": "Semana 1 - Sistemas Centrais e Energia",
+      "tasks": [
+        { "id": "w1_t1", "day": 1, "startRow": 1, "duration": 3, "title": "GMG 01 a 05", "desc": "Teste s/ carga (15min/cada)", "category": "cat-elec" },
+        { "id": "w1_t2", "day": 1, "startRow": 6, "duration": 2, "title": "CHILLER 01 (BAG01)", "desc": "Inspeção / Preventiva", "category": "cat-hvac" },
+        { "id": "w1_t3", "day": 1, "startRow": 8, "duration": 3, "title": "CHILLER 02 (BAG02)", "desc": "Inspeção / Preventiva", "category": "cat-hvac" },
+        { "id": "w1_t4", "day": 2, "startRow": 1, "duration": 4, "title": "CAG: CHILLER 03 (BAG03)", "desc": "Inspeção geral CAG", "category": "cat-hvac" },
+        { "id": "w1_t5", "day": 2, "startRow": 6, "duration": 4, "title": "AC-SALA CAG", "desc": "Manutenção Preventiva", "category": "cat-hvac" },
+        { "id": "w1_t6", "day": 3, "startRow": 1, "duration": 4, "title": "Torres/abrandador: TORRE01", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w1_t7", "day": 3, "startRow": 6, "duration": 4, "title": "TORRE02", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w1_t8", "day": 4, "startRow": 1, "duration": 4, "title": "TORRE03", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w1_t9", "day": 4, "startRow": 6, "duration": 4, "title": "Abrandador", "desc": "Reposição de sal", "category": "cat-routine" },
+        { "id": "w1_t10", "day": 5, "startRow": 1, "duration": 4, "title": "SPLIT: AC-601 (A, B, C, D)", "desc": "Manutenção de Splits", "category": "cat-hvac" },
+        { "id": "w1_t11", "day": 5, "startRow": 6, "duration": 4, "title": "RELATORIO INFRATEL", "desc": "Emissão e Validação de Relatórios", "category": "cat-routine" }
+      ]
+    },
+    {
+      "id": "w2",
+      "title": "Semana 2 - Áreas Críticas e BBIP",
+      "tasks": [
+        { "id": "w2_t1", "day": 1, "startRow": 1, "duration": 2, "title": "GMG 01 a 05 / AC 5° ANDAR", "desc": "Teste s/ carga (15min/cada)", "category": "cat-elec" },
+        { "id": "w2_t2", "day": 1, "startRow": 3, "duration": 1, "title": "Abrandador", "desc": "Reposição de sal", "category": "cat-routine" },
+        { "id": "w2_t3", "day": 1, "startRow": 4, "duration": 1, "title": "AC-501.1-A", "desc": "Manutenção Climatização", "category": "cat-hvac" },
+        { "id": "w2_t4", "day": 1, "startRow": 6, "duration": 4, "title": "AC-501.1-B", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w2_t5", "day": 2, "startRow": 1, "duration": 4, "title": "AC 5° ANDAR: AC-501.1-C", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w2_t6", "day": 2, "startRow": 6, "duration": 4, "title": "AC-501.1-D", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w2_t7", "day": 3, "startRow": 1, "duration": 4, "title": "AC 6° ANDAR: AC-604-A", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w2_t8", "day": 3, "startRow": 6, "duration": 4, "title": "AC-604-B", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w2_t9", "day": 4, "startRow": 1, "duration": 4, "title": "AC 6° ANDAR: AC-604-C", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w2_t10", "day": 4, "startRow": 6, "duration": 4, "title": "AC-604-E-BBIP", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w2_t11", "day": 5, "startRow": 1, "duration": 4, "title": "AC 604-F - BBIP", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w2_t12", "day": 5, "startRow": 6, "duration": 4, "title": "AC 604-G - BBIP", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" }
+      ]
+    },
+    {
+      "id": "w3",
+      "title": "Semana 3 - Séries 400 a 600",
+      "tasks": [
+        { "id": "w3_t1", "day": 1, "startRow": 1, "duration": 2, "title": "GMG 01 a 05 e AC 7° ANDAR", "desc": "Teste s/ carga (15min/cada)", "category": "cat-elec" },
+        { "id": "w3_t2", "day": 1, "startRow": 3, "duration": 1, "title": "AC-606.1-A", "desc": "Manutenção Preventiva", "category": "cat-hvac" },
+        { "id": "w3_t3", "day": 1, "startRow": 4, "duration": 1, "title": "AC-606.1-B", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w3_t4", "day": 2, "startRow": 1, "duration": 4, "title": "AC-606.2-A", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w3_t5", "day": 2, "startRow": 6, "duration": 4, "title": "Abrandador", "desc": "Reposição de sal", "category": "cat-routine" },
+        { "id": "w3_t6", "day": 3, "startRow": 1, "duration": 4, "title": "AC 7° ANDAR: AC-701.1-A", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w3_t7", "day": 3, "startRow": 6, "duration": 4, "title": "AC-701.1-B", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w3_t8", "day": 4, "startRow": 1, "duration": 4, "title": "AC 7° ANDAR: AC-701.1-C", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w3_t9", "day": 4, "startRow": 6, "duration": 4, "title": "AC-701.1-D", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w3_t10", "day": 5, "startRow": 1, "duration": 4, "title": "AC 7° ANDAR: AC-701.1-E & F", "desc": "Revisão Dupla", "category": "cat-hvac" },
+        { "id": "w3_t11", "day": 5, "startRow": 6, "duration": 4, "title": "RELATORIO INFRATEL", "desc": "Emissão e Validação de Relatórios", "category": "cat-routine" }
+      ]
+    },
+    {
+      "id": "w4",
+      "title": "Semana 4 - Séries 700 e 800 + Fechamento",
+      "tasks": [
+        { "id": "w4_t1", "day": 1, "startRow": 1, "duration": 2, "title": "GMG 01 a 05", "desc": "Teste s/ carga (15min/cada)", "category": "cat-elec" },
+        { "id": "w4_t2", "day": 1, "startRow": 3, "duration": 1, "title": "Abrandador", "desc": "Reposição de sal", "category": "cat-routine" },
+        { "id": "w4_t3", "day": 1, "startRow": 4, "duration": 1, "title": "AC-706.1-A", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w4_t4", "day": 2, "startRow": 1, "duration": 4, "title": "AC 7° ANDAR: AC-706.1-B", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w4_t5", "day": 2, "startRow": 6, "duration": 4, "title": "AC-706.1-C", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w4_t6", "day": 3, "startRow": 1, "duration": 4, "title": "AC 8° ANDAR: AC-801.1-A", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w4_t7", "day": 3, "startRow": 6, "duration": 4, "title": "AC-801.1-B", "desc": "RELATORIO INFRATEL", "category": "cat-hvac" },
+        { "id": "w4_t8", "day": 4, "startRow": 1, "duration": 4, "title": "AC 8° ANDAR: AC-SUBESTAÇÃO 1", "desc": "RELATORIO INFRATEL", "category": "cat-elec" },
+        { "id": "w4_t9", "day": 4, "startRow": 6, "duration": 4, "title": "AC-SUBESTAÇÃO 2", "desc": "RELATORIO INFRATEL", "category": "cat-elec" },
+        { "id": "w4_t10", "day": 5, "startRow": 1, "duration": 2, "title": "SPLIT 01 - SALA INVERSOR DAS TORRES", "desc": "Manutenção Especial", "category": "cat-hvac" },
+        { "id": "w4_t11", "day": 5, "startRow": 3, "duration": 1, "title": "SPLIT 1 - BBIP", "desc": "Preventiva BBIP", "category": "cat-hvac" },
+        { "id": "w4_t12", "day": 5, "startRow": 4, "duration": 1, "title": "SPLIT 2 - BBIP", "desc": "Preventiva BBIP", "category": "cat-hvac" },
+        { "id": "w4_t13", "day": 5, "startRow": 6, "duration": 4, "title": "SPLIT 3 - BBIP & FECHAMENTO", "desc": "Finalização do Ciclo Mensal", "category": "cat-hvac" }
+      ]
+    },
+    {
+      "id": "w5",
+      "title": "Semana 5 - Quadros Elétricos AC",
+      "tasks": [
+        { "id": "w5_t1", "day": 1, "startRow": 1, "duration": 2, "title": "QDCA#QAC-604 / 606", "desc": "Inspeção Quadros AC", "category": "cat-elec" },
+        { "id": "w5_t2", "day": 1, "startRow": 3, "duration": 2, "title": "QDCA#QAC-701 / 706", "desc": "Inspeção Quadros AC", "category": "cat-elec" },
+        { "id": "w5_t3", "day": 1, "startRow": 6, "duration": 2, "title": "QDCA#QAC-TORRES", "desc": "Quadros AC Torres", "category": "cat-elec" },
+        { "id": "w5_t4", "day": 1, "startRow": 8, "duration": 3, "title": "QDCA#QGAG-02", "desc": "Quadro GAG 02", "category": "cat-elec" },
+        { "id": "w5_t5", "day": 2, "startRow": 1, "duration": 2, "title": "QDCA#QGAG-01 / 03", "desc": "Quadros GAG", "category": "cat-elec" },
+        { "id": "w5_t6", "day": 2, "startRow": 3, "duration": 2, "title": "QDCA#QDAC-604A / 604B", "desc": "Quadros DAC 604", "category": "cat-elec" },
+        { "id": "w5_t7", "day": 2, "startRow": 6, "duration": 2, "title": "QDCA#QAC-406", "desc": "Quadro AC 406", "category": "cat-elec" },
+        { "id": "w5_t8", "day": 2, "startRow": 8, "duration": 3, "title": "QDCA#QAC-801 / 501", "desc": "Quadros AC 801 e 501", "category": "cat-elec" }
+      ]
+    }
+  ]
+}
