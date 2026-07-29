@@ -271,19 +271,24 @@ async function syncFromCloud(isInitial = false) {
             const targetData = (dataObj && dataObj.weeks) ? dataObj : (dataObj && dataObj.data && dataObj.data.weeks ? dataObj.data : null);
 
             if (targetData && Array.isArray(targetData.weeks)) {
-                const cleanData = {
-                    title: targetData.title || appData.title,
-                    subtitle: targetData.subtitle || appData.subtitle,
-                    weeks: targetData.weeks
-                };
+                if (targetData.weeks.length === 0 && appData && Array.isArray(appData.weeks) && appData.weeks.length > 0) {
+                    // Endpoint da nuvem está vazio: popula a nuvem com os dados locais!
+                    pushToCloud();
+                } else if (targetData.weeks.length > 0) {
+                    const cleanData = {
+                        title: targetData.title || appData.title,
+                        subtitle: targetData.subtitle || appData.subtitle,
+                        weeks: targetData.weeks
+                    };
 
-                const cloudJson = JSON.stringify(cleanData);
-                const localJson = JSON.stringify(appData);
+                    const cloudJson = JSON.stringify(cleanData);
+                    const localJson = JSON.stringify(appData);
 
-                if (cloudJson !== localJson) {
-                    appData = cleanData;
-                    localStorage.setItem(STORAGE_KEY, cloudJson);
-                    renderHourlyGridDashboard();
+                    if (cloudJson !== localJson) {
+                        appData = cleanData;
+                        localStorage.setItem(STORAGE_KEY, cloudJson);
+                        renderHourlyGridDashboard();
+                    }
                 }
                 updateCloudBadge('online', 'Nuvem ON');
                 return true;
@@ -347,13 +352,19 @@ function loadData() {
     }
 
     if (saved) {
-        try { appData = JSON.parse(saved); }
-        catch (e) { appData = JSON.parse(JSON.stringify(defaultData)); }
-    } else {
-        appData = JSON.parse(JSON.stringify(defaultData));
+        try { 
+            appData = JSON.parse(saved); 
+        } catch (e) { 
+            appData = JSON.parse(JSON.stringify(defaultData)); 
+        }
     }
 
-    // Tenta sincronizar a versão mais recente da nuvem em segundo plano
+    if (!appData || !Array.isArray(appData.weeks) || appData.weeks.length === 0) {
+        appData = JSON.parse(JSON.stringify(defaultData));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    // Sincroniza a versão mais recente da nuvem em segundo plano
     syncFromCloud(true);
 }
 
