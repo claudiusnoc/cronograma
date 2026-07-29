@@ -243,7 +243,7 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
 }
 
 // MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (CRUDCRUD CLOUD MASTER ENDPOINT)
-const CLOUD_MASTER_ENDPOINT = 'https://crudcrud.com/api/0341e87878ab4ca0a8bfb845bf72ee92/schedule/6a6a33d380807903e8b0e318';
+const CLOUD_MASTER_ENDPOINT = 'https://crudcrud.com/api/00cf13cd238b4690869ee896d3e7ff27/schedule/6a6a43b180807903e8b0e321';
 let cloudSaveTimer = null;
 let isSavingToCloud = false;
 
@@ -1731,9 +1731,9 @@ if (cloudBadge) {
     });
 }
 
-// Polling automático da Nuvem a cada 12 segundos para sincronizar alterações de outros usuários
+// Polling automático da Nuvem a cada 45 segundos para economizar requisições e sincronizar alterações
 setInterval(() => {
     if (!wasDraggingOrResizing && !editingTaskId && !editingInlineTaskId) {
         syncFromCloud(true);
     }
-}, 12000);
+}, 45000);
