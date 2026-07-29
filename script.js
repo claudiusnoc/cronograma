@@ -242,8 +242,9 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
     });
 }
 
-// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (COMPATÍVEL COM GITHUB PAGES)
-const CLOUD_SYNC_ENDPOINT = 'https://api.restful-api.dev/objects/ff80818190d79d720190d81a92e10023';
+// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (AUTO-INICIALIZÁVEL E COMPATÍVEL COM GITHUB PAGES)
+let cloudObjectId = localStorage.getItem('mgcen00_cloud_object_id') || 'ff80818190d79d720190d85a12b40099';
+let cloudEndpoint = `https://api.restful-api.dev/objects/${cloudObjectId}`;
 let cloudSaveTimer = null;
 let isSavingToCloud = false;
 
@@ -255,10 +256,41 @@ function updateCloudBadge(state, text) {
     if (label) label.textContent = text;
 }
 
+async function createCloudObject() {
+    try {
+        updateCloudBadge('syncing', 'Criando Nuvem...');
+        const res = await fetch('https://api.restful-api.dev/objects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: 'Cronograma MGCEN00 Master',
+                data: appData
+            })
+        });
+        if (res.ok) {
+            const result = await res.json();
+            if (result && result.id) {
+                cloudObjectId = result.id;
+                cloudEndpoint = `https://api.restful-api.dev/objects/${result.id}`;
+                localStorage.setItem('mgcen00_cloud_object_id', cloudObjectId);
+                updateCloudBadge('online', 'Nuvem ON');
+                return true;
+            }
+        }
+    } catch (e) {
+        console.warn('Erro ao inicializar banco na nuvem:', e);
+    }
+    updateCloudBadge('offline', 'Modo Local');
+    return false;
+}
+
 async function syncFromCloud(isInitial = false) {
+    if (!cloudObjectId) {
+        return await createCloudObject();
+    }
     try {
         if (!isInitial) updateCloudBadge('syncing', 'Sincronizando...');
-        const res = await fetch(CLOUD_SYNC_ENDPOINT);
+        const res = await fetch(cloudEndpoint);
         if (res.ok) {
             const dataObj = await res.json();
             if (dataObj && dataObj.data && dataObj.data.weeks) {
@@ -272,6 +304,8 @@ async function syncFromCloud(isInitial = false) {
                 updateCloudBadge('online', 'Nuvem ON');
                 return true;
             }
+        } else if (res.status === 404) {
+            return await createCloudObject();
         }
     } catch (err) {
         console.warn('Fallback para dados locais:', err);
@@ -281,20 +315,25 @@ async function syncFromCloud(isInitial = false) {
 }
 
 async function pushToCloud() {
+    if (!cloudObjectId) {
+        return await createCloudObject();
+    }
     if (isSavingToCloud) return;
     isSavingToCloud = true;
     updateCloudBadge('syncing', 'Salvando...');
     try {
-        const res = await fetch(CLOUD_SYNC_ENDPOINT, {
+        const res = await fetch(cloudEndpoint, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                name: 'Cronograma MGCEN00',
+                name: 'Cronograma MGCEN00 Master',
                 data: appData
             })
         });
         if (res.ok) {
             updateCloudBadge('online', 'Nuvem ON');
+        } else if (res.status === 404) {
+            await createCloudObject();
         } else {
             updateCloudBadge('offline', 'Modo Local');
         }
@@ -1536,6 +1575,20 @@ applyZoomOutState();
 renderHourlyGridDashboard();
 setupCategoryFilters();
 setupZoomController();
+
+// Listener de clique no selo de nuvem para sincronização manual
+const cloudBadge = document.getElementById('cloud-sync-badge');
+if (cloudBadge) {
+    cloudBadge.addEventListener('click', async () => {
+        showToast('☁️ Conectando e sincronizando com a nuvem...');
+        const success = await syncFromCloud();
+        if (success) {
+            showToast('🟢 Cronograma sincronizado com a nuvem!');
+        } else {
+            showToast('⚠️ Usando dados armazenados localmente.');
+        }
+    });
+}
 
 // Polling automático da Nuvem a cada 12 segundos para sincronizar alterações de outros usuários
 setInterval(() => {
