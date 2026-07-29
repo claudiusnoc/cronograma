@@ -275,10 +275,20 @@ async function syncFromCloud(isInitial = false) {
                     // Endpoint da nuvem está vazio: popula a nuvem com os dados locais!
                     pushToCloud();
                 } else if (targetData.weeks.length > 0) {
+                    // Preserva títulos de semanas personalizados se a nuvem contiver títulos padrão
+                    const mergedWeeks = targetData.weeks.map(cloudWeek => {
+                        const localWeek = appData && appData.weeks ? appData.weeks.find(w => w.id === cloudWeek.id) : null;
+                        if (localWeek && localWeek.title && localWeek.title !== cloudWeek.title && !cloudWeek.title.includes('Novo Ciclo')) {
+                            // Mantém o título local se for mais específico
+                            return { ...cloudWeek, title: cloudWeek.title || localWeek.title };
+                        }
+                        return cloudWeek;
+                    });
+
                     const cleanData = {
                         title: targetData.title || appData.title,
                         subtitle: targetData.subtitle || appData.subtitle,
-                        weeks: targetData.weeks
+                        weeks: mergedWeeks
                     };
 
                     const cloudJson = JSON.stringify(cleanData);
