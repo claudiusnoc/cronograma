@@ -242,9 +242,8 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
     });
 }
 
-// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (AUTO-INICIALIZÁVEL E COMPATÍVEL COM GITHUB PAGES)
-let cloudObjectId = localStorage.getItem('mgcen00_cloud_object_id') || 'ff80818190d79d720190d85a12b40099';
-let cloudEndpoint = `https://api.restful-api.dev/objects/${cloudObjectId}`;
+// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (CRUDCRUD CLOUD MASTER ENDPOINT)
+const CLOUD_MASTER_ENDPOINT = 'https://crudcrud.com/api/0341e87878ab4ca0a8bfb845bf72ee92/schedule/6a6a33d380807903e8b0e318';
 let cloudSaveTimer = null;
 let isSavingToCloud = false;
 
@@ -256,56 +255,32 @@ function updateCloudBadge(state, text) {
     if (label) label.textContent = text;
 }
 
-async function createCloudObject() {
-    try {
-        updateCloudBadge('syncing', 'Criando Nuvem...');
-        const res = await fetch('https://api.restful-api.dev/objects', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: 'Cronograma MGCEN00 Master',
-                data: appData
-            })
-        });
-        if (res.ok) {
-            const result = await res.json();
-            if (result && result.id) {
-                cloudObjectId = result.id;
-                cloudEndpoint = `https://api.restful-api.dev/objects/${result.id}`;
-                localStorage.setItem('mgcen00_cloud_object_id', cloudObjectId);
-                updateCloudBadge('online', 'Nuvem ON');
-                return true;
-            }
-        }
-    } catch (e) {
-        console.warn('Erro ao inicializar banco na nuvem:', e);
-    }
-    updateCloudBadge('offline', 'Modo Local');
-    return false;
-}
-
 async function syncFromCloud(isInitial = false) {
-    if (!cloudObjectId) {
-        return await createCloudObject();
-    }
     try {
         if (!isInitial) updateCloudBadge('syncing', 'Sincronizando...');
-        const res = await fetch(cloudEndpoint);
+        const res = await fetch(CLOUD_MASTER_ENDPOINT);
         if (res.ok) {
             const dataObj = await res.json();
-            if (dataObj && dataObj.data && dataObj.data.weeks) {
-                const cloudJson = JSON.stringify(dataObj.data);
+            const targetData = (dataObj && dataObj.weeks) ? dataObj : (dataObj && dataObj.data && dataObj.data.weeks ? dataObj.data : null);
+
+            if (targetData && Array.isArray(targetData.weeks)) {
+                const cleanData = {
+                    title: targetData.title || appData.title,
+                    subtitle: targetData.subtitle || appData.subtitle,
+                    weeks: targetData.weeks
+                };
+
+                const cloudJson = JSON.stringify(cleanData);
                 const localJson = JSON.stringify(appData);
+
                 if (cloudJson !== localJson) {
-                    appData = dataObj.data;
+                    appData = cleanData;
                     localStorage.setItem(STORAGE_KEY, cloudJson);
                     renderHourlyGridDashboard();
                 }
                 updateCloudBadge('online', 'Nuvem ON');
                 return true;
             }
-        } else if (res.status === 404) {
-            return await createCloudObject();
         }
     } catch (err) {
         console.warn('Fallback para dados locais:', err);
@@ -315,25 +290,24 @@ async function syncFromCloud(isInitial = false) {
 }
 
 async function pushToCloud() {
-    if (!cloudObjectId) {
-        return await createCloudObject();
-    }
     if (isSavingToCloud) return;
     isSavingToCloud = true;
     updateCloudBadge('syncing', 'Salvando...');
     try {
-        const res = await fetch(cloudEndpoint, {
+        const payload = {
+            title: appData.title,
+            subtitle: appData.subtitle,
+            weeks: appData.weeks
+        };
+
+        const res = await fetch(CLOUD_MASTER_ENDPOINT, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: 'Cronograma MGCEN00 Master',
-                data: appData
-            })
+            body: JSON.stringify(payload)
         });
-        if (res.ok) {
+
+        if (res.ok || res.status === 200) {
             updateCloudBadge('online', 'Nuvem ON');
-        } else if (res.status === 404) {
-            await createCloudObject();
         } else {
             updateCloudBadge('offline', 'Modo Local');
         }
@@ -349,7 +323,7 @@ function triggerCloudSave() {
     if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
     cloudSaveTimer = setTimeout(() => {
         pushToCloud();
-    }, 700);
+    }, 600);
 }
 
 function loadData() {
