@@ -242,8 +242,12 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
     });
 }
 
-// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (CRUDCRUD CLOUD MASTER ENDPOINT)
-const CLOUD_MASTER_ENDPOINT = 'https://crudcrud.com/api/c33fb3fe28554772aa3c8886b0408c4c/schedule/6a6b604e80807903e8b0e40c';
+// MOTOR DE SINCRONIZAÇÃO PERMANENTE NA NUVEM (JSONBIN.IO PERMANENT CLOUD ENGINE)
+const JSONBIN_MASTER_KEY = '$2a$10$EwG6CwIkRwMRvUN2LDv6CeTX0k.ftT3EnCIy9w4MVNktpnps/D6Ca';
+const JSONBIN_BIN_ID = '6a6b617df5f4af5e29d60c42';
+const JSONBIN_READ_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`;
+const JSONBIN_WRITE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
 let cloudSaveTimer = null;
 let isSavingToCloud = false;
 
@@ -256,11 +260,11 @@ function updateCloudBadge(state, text) {
     const svgEl = badge.querySelector('.cloud-icon-svg');
 
     if (state === 'online') {
-        badge.title = 'Sincronizado na nuvem em tempo real (Lucide Cloud Engine) · Clique para atualizar';
+        badge.title = 'Sincronizado na Nuvem Permanente (JSONBin.io) · Clique para atualizar';
         if (statusTextEl) statusTextEl.textContent = 'NUVEM SINC';
         if (svgEl) svgEl.innerHTML = '<path d="M17.5 19a5 5 0 0 0 2-9.19M18 10a5 5 0 0 0-3.79 8.25M6.5 19h11a4.5 4.5 0 0 0 2.5-8.24 7 7 0 0 0-13.44-2.12A4.5 4.5 0 0 0 6.5 19z"></path><polyline points="9 13 11 15 15 11"></polyline>';
     } else if (state === 'syncing') {
-        badge.title = 'Enviando alterações para a nuvem...';
+        badge.title = 'Enviando alterações para a nuvem permanente...';
         if (statusTextEl) statusTextEl.textContent = 'SALVANDO...';
         if (svgEl) svgEl.innerHTML = '<path d="M17.5 19a5 5 0 0 0 2-9.19M18 10a5 5 0 0 0-3.79 8.25M6.5 19h11a4.5 4.5 0 0 0 2.5-8.24 7 7 0 0 0-13.44-2.12A4.5 4.5 0 0 0 6.5 19z"></path><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line>';
     } else {
@@ -273,17 +277,16 @@ function updateCloudBadge(state, text) {
 async function syncFromCloud(isInitial = false) {
     try {
         if (!isInitial) updateCloudBadge('syncing', 'Sincronizando...');
-        const res = await fetch(CLOUD_MASTER_ENDPOINT);
+        const res = await fetch(JSONBIN_READ_URL, {
+            headers: { 'X-Master-Key': JSONBIN_MASTER_KEY }
+        });
         if (res.ok) {
             const dataObj = await res.json();
-            const targetData = (dataObj && dataObj.weeks) ? dataObj : (dataObj && dataObj.data && dataObj.data.weeks ? dataObj.data : null);
+            const targetData = (dataObj && dataObj.record) ? dataObj.record : null;
 
             if (targetData && Array.isArray(targetData.weeks)) {
-                if (targetData.weeks.length === 0 && appData && Array.isArray(appData.weeks) && appData.weeks.length > 0) {
-                    // Se o endpoint da nuvem estiver recém-criado/vazio, envia o estado local atual
-                    pushToCloud();
-                } else if (targetData.weeks.length > 0) {
-                    // A NUVEM É A AUTORIDADE SUPREMA: atualiza o aplicativo e o localStorage local
+                if (targetData.weeks.length > 0) {
+                    // A NUVEM PERMANENTE É A AUTORIDADE SUPREMA
                     const cleanData = {
                         title: targetData.title || (appData ? appData.title : 'BHE ES'),
                         subtitle: targetData.subtitle || (appData ? appData.subtitle : ''),
@@ -321,9 +324,12 @@ async function pushToCloud() {
             weeks: appData.weeks
         };
 
-        const res = await fetch(CLOUD_MASTER_ENDPOINT, {
+        const res = await fetch(JSONBIN_WRITE_URL, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_MASTER_KEY
+            },
             body: JSON.stringify(payload)
         });
 
