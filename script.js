@@ -243,7 +243,7 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
 
 // MOTOR DE SINCRONIZAÇÃO PERMANENTE NA NUVEM (JSONBIN.IO PERMANENT CLOUD ENGINE)
 const JSONBIN_MASTER_KEY = '$2a$10$EwG6CwIkRwMRvUN2LDv6CeTX0k.ftT3EnCIy9w4MVNktpnps/D6Ca';
-const JSONBIN_BIN_ID = '6a6b6ba1da38895dfea4bed4';
+const JSONBIN_BIN_ID = '6a6b617df5f4af5e29d60c42';
 const JSONBIN_READ_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`;
 const JSONBIN_WRITE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
