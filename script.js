@@ -572,6 +572,12 @@ function renderHourlyGridDashboard() {
 
         // Render Tasks
         week.tasks.forEach(task => {
+            // Limita a duração para não ultrapassar a linha 10 (17:00 as 18:00 = 1h max)
+            const maxDur = Math.max(1, 10 - task.startRow + 1);
+            if (task.duration > maxDur) {
+                task.duration = maxDur;
+            }
+
             const isEditing = (task.id === editingInlineTaskId);
             const taskCard = document.createElement('div');
             
@@ -1352,9 +1358,11 @@ document.getElementById('btn-save-task').addEventListener('click', () => {
 
     const slotObj = TIME_SLOTS.find(s => s.time === timeStr);
     const startRow = slotObj ? slotObj.row : 1;
+    const maxAllowedDur = Math.max(1, 10 - startRow + 1);
+    const finalDuration = Math.min(duration, maxAllowedDur);
 
     // Verificação Anti-Colisão antes de salvar
-    if (hasTaskCollision(targetWeekId, day, startRow, duration, editingTaskId)) {
+    if (hasTaskCollision(targetWeekId, day, startRow, finalDuration, editingTaskId)) {
         showToast('⚠️ O horário selecionado já possui outra tarefa agendada.');
         return;
     }
@@ -1371,7 +1379,7 @@ document.getElementById('btn-save-task').addEventListener('click', () => {
             task.desc = desc;
             task.day = day;
             task.startRow = startRow;
-            task.duration = duration;
+            task.duration = finalDuration;
             task.category = category;
             targetWeek.tasks.push(task);
         }
@@ -1381,7 +1389,7 @@ document.getElementById('btn-save-task').addEventListener('click', () => {
                 id: 't' + Date.now(),
                 day,
                 startRow,
-                duration,
+                duration: finalDuration,
                 title,
                 desc,
                 category
