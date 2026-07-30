@@ -243,7 +243,7 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
 }
 
 // MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (CRUDCRUD CLOUD MASTER ENDPOINT)
-const CLOUD_MASTER_ENDPOINT = 'https://crudcrud.com/api/00cf13cd238b4690869ee896d3e7ff27/schedule/6a6a43b180807903e8b0e321';
+const CLOUD_MASTER_ENDPOINT = 'https://crudcrud.com/api/308c872244054020b2de80527fa2cc7a/schedule/6a6b52ba80807903e8b0e400';
 let cloudSaveTimer = null;
 let isSavingToCloud = false;
 
