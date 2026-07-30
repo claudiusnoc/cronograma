@@ -1785,6 +1785,9 @@ renderHourlyGridDashboard();
 setupCategoryFilters();
 setupZoomController();
 
+// Sincronização imediata na nuvem ao carregar a página
+syncFromCloud(true);
+
 // Listener de clique no selo de nuvem para sincronização manual
 const cloudBadge = document.getElementById('cloud-sync-badge');
 if (cloudBadge) {
