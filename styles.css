@@ -1949,22 +1949,65 @@ body.dark-theme .context-menu {
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
 }
 
-/* Task Cards in Dark Mode */
+/* Opaque Solid High-Contrast Task Cards in Dark Mode */
+body.dark-theme .task-card {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
 body.dark-theme .task-card.cat-hvac {
-    background-color: rgba(2, 132, 199, 0.14);
-    border-color: rgba(2, 132, 199, 0.35);
-    color: #38BDF8;
+    background-color: #0C2A4A;
+    border: 1px solid #0284C7;
+    color: #F0F9FF;
+}
+
+body.dark-theme .task-card.cat-hvac .task-card-title {
+    color: #F0F9FF;
+}
+
+body.dark-theme .task-card.cat-hvac .task-card-desc {
+    color: #BAE6FD;
+}
+
+body.dark-theme .task-card.cat-hvac .task-time-badge {
+    background-color: #0369A1;
+    color: #E0F2FE;
 }
 
 body.dark-theme .task-card.cat-elec {
-    background-color: rgba(217, 119, 6, 0.14);
-    border-color: rgba(217, 119, 6, 0.35);
-    color: #FBBF24;
+    background-color: #38240A;
+    border: 1px solid #D97706;
+    color: #FFFBEB;
+}
+
+body.dark-theme .task-card.cat-elec .task-card-title {
+    color: #FFFBEB;
+}
+
+body.dark-theme .task-card.cat-elec .task-card-desc {
+    color: #FDE68A;
+}
+
+body.dark-theme .task-card.cat-elec .task-time-badge {
+    background-color: #B45309;
+    color: #FEF3C7;
 }
 
 body.dark-theme .task-card.cat-routine {
-    background-color: rgba(22, 163, 74, 0.14);
-    border-color: rgba(22, 163, 74, 0.35);
-    color: #34D399;
+    background-color: #092B19;
+    border: 1px solid #16A34A;
+    color: #F0FDF4;
+}
+
+body.dark-theme .task-card.cat-routine .task-card-title {
+    color: #F0FDF4;
+}
+
+body.dark-theme .task-card.cat-routine .task-card-desc {
+    color: #A7F3D0;
+}
+
+body.dark-theme .task-card.cat-routine .task-time-badge {
+    background-color: #15803D;
+    color: #DCFCE7;
 }
 
