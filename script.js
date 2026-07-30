@@ -9,19 +9,18 @@ function getRowHeight() {
     return isZoomOutMode ? 24 : 42;
 }
 
-// 11 Row slots definitions (08:00 to 18:00)
+// 10 Row slots definitions (08:00 to 18:00) with 1-Hour Lunch (12:00 - 13:00)
 const TIME_SLOTS = [
     { row: 1, time: '08:00' },
     { row: 2, time: '09:00' },
     { row: 3, time: '10:00' },
     { row: 4, time: '11:00' },
-    { row: 5, time: '12:00', isLunch: true }, // Fixed Lunch (12:00 - 13:30)
-    { row: 6, time: '13:30' },
-    { row: 7, time: '14:30' },
-    { row: 8, time: '15:30' },
-    { row: 9, time: '16:30' },
-    { row: 10, time: '17:00' },
-    { row: 11, time: '18:00' }
+    { row: 5, time: '12:00', isLunch: true }, // Pausa para Almoço (12:00 - 13:00)
+    { row: 6, time: '13:00' },
+    { row: 7, time: '14:00' },
+    { row: 8, time: '15:00' },
+    { row: 9, time: '16:00' },
+    { row: 10, time: '17:00' }
 ];
 
 const defaultData = {
@@ -244,7 +243,7 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
 
 // MOTOR DE SINCRONIZAÇÃO PERMANENTE NA NUVEM (JSONBIN.IO PERMANENT CLOUD ENGINE)
 const JSONBIN_MASTER_KEY = '$2a$10$EwG6CwIkRwMRvUN2LDv6CeTX0k.ftT3EnCIy9w4MVNktpnps/D6Ca';
-const JSONBIN_BIN_ID = '6a6b617df5f4af5e29d60c42';
+const JSONBIN_BIN_ID = '6a6b6ba1da38895dfea4bed4';
 const JSONBIN_READ_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`;
 const JSONBIN_WRITE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
@@ -540,7 +539,7 @@ function renderHourlyGridDashboard() {
         lunch.innerHTML = `
             <div class="lunch-break-text">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                <span>PAUSA PARA ALMOÇO (12:00 - 13:30)</span>
+                <span>PAUSA PARA ALMOÇO (12:00 - 13:00)</span>
             </div>
         `;
         grid.appendChild(lunch);
@@ -830,8 +829,8 @@ function onPointerMove(e) {
         const deltaRows = Math.round(deltaY / getRowHeight());
         let newDuration = Math.max(1, startDuration + deltaRows);
 
-        if (startRow + newDuration - 1 > 11) {
-            newDuration = 11 - startRow + 1;
+        if (startRow + newDuration - 1 > 10) {
+            newDuration = 10 - startRow + 1;
         }
 
         // Anti-Colisão para Resize: Limita redimensionamento antes da próxima tarefa abaixo
@@ -865,8 +864,8 @@ function onPointerMove(e) {
         let previewRow = Math.max(1, startRow + deltaRows);
         let previewDay = Math.max(1, Math.min(5, startDay + deltaDays));
         if (previewRow === 5) previewRow = 6;
-        if (previewRow + activeTaskObj.duration - 1 > 11) {
-            previewRow = 11 - activeTaskObj.duration + 1;
+        if (previewRow + activeTaskObj.duration - 1 > 10) {
+            previewRow = 10 - activeTaskObj.duration + 1;
         }
 
         const isCollision = hasTaskCollision(activeWeekObj.id, previewDay, previewRow, activeTaskObj.duration, activeTaskObj.id);
@@ -918,8 +917,8 @@ function onPointerUp() {
         let newRow = Math.max(1, startRow + deltaRows);
         let newDay = Math.max(1, Math.min(5, startDay + deltaDays));
         if (newRow === 5) newRow = 6;
-        if (newRow + activeTaskObj.duration - 1 > 11) {
-            newRow = 11 - activeTaskObj.duration + 1;
+        if (newRow + activeTaskObj.duration - 1 > 10) {
+            newRow = 10 - activeTaskObj.duration + 1;
         }
 
         const isCollision = hasTaskCollision(activeWeekObj.id, newDay, newRow, activeTaskObj.duration, activeTaskObj.id);

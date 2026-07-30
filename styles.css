@@ -677,11 +677,11 @@ body {
     letter-spacing: 0.08em;
 }
 
-/* Timeline Grid with 11 Hourly Rows (08:00 to 18:00) */
+/* Timeline Grid with 10 Hourly Rows (08:00 to 18:00) */
 .timeline-grid {
     display: grid;
     grid-template-columns: var(--time-col-width) repeat(5, 1fr);
-    grid-template-rows: repeat(11, var(--row-height));
+    grid-template-rows: repeat(10, var(--row-height));
     position: relative;
     background-color: #FFFFFF;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
