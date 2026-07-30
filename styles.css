@@ -1486,12 +1486,122 @@ body.dark-theme .tooltip-footer {
 .modal-actions { display: flex; justify-content: space-between; margin-top: 24px; }
 .right-actions { display: flex; gap: 8px; }
 
-/* DEDICATED PDF EXPORT MODE STYLING WITH SYMMETRICAL BORDERS & ZERO RIGHT CUTOFF */
+/* EXECUTIVE AUTHOR SIGNATURE FOOTER (CLAUDIUS AUTHORSHIP) */
+.app-author-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    margin-top: 24px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #64748B;
+}
+
+.author-signature {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.author-badge-icon {
+    font-size: 12px;
+}
+
+.author-label strong {
+    color: #0F172A;
+    font-weight: 700;
+}
+
+.author-dot {
+    color: #CBD5E1;
+}
+
+.system-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.system-version {
+    color: #0F172A;
+    font-weight: 700;
+}
+
+body.dark-theme .app-author-footer {
+    background: #162032;
+    border-color: #1E293B;
+    color: #94A3B8;
+}
+
+body.dark-theme .author-label strong,
+body.dark-theme .system-version {
+    color: #F8FAFC;
+}
+
+.author-social-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    color: #64748B;
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    text-decoration: none;
+}
+
+.social-link:hover {
+    background-color: #0EA5E9;
+    border-color: #0EA5E9;
+    color: #FFFFFF;
+    transform: translateY(-1px);
+}
+
+body.dark-theme .social-link {
+    background-color: #1F2937;
+    border-color: #374151;
+    color: #9CA3AF;
+}
+
+body.dark-theme .social-link:hover {
+    background-color: #38BDF8;
+    border-color: #38BDF8;
+    color: #0F172A;
+}
+
+/* HIGH-PRECISION MINIMALIST PDF EXPORT MODE (ZERO CUTOFF & PERFECT WORD SPACING) */
 body.pdf-export-mode {
     height: auto !important;
     overflow: visible !important;
-    background-color: var(--white) !important;
+    background-color: #FFFFFF !important;
     width: 100% !important;
+    text-rendering: optimizeLegibility !important;
+}
+
+body.pdf-export-mode * {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    word-spacing: 0.2em !important;
+    letter-spacing: 0.01em !important;
+}
+
+body.pdf-export-mode .day-code {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    word-spacing: normal !important;
 }
 
 body.pdf-export-mode .app-header {
@@ -1501,34 +1611,76 @@ body.pdf-export-mode .app-header {
 body.pdf-export-mode .workspace {
     overflow: visible !important;
     height: auto !important;
-    background-color: var(--white) !important;
+    background-color: #FFFFFF !important;
     width: 100% !important;
+    padding: 0 !important;
 }
 
 body.pdf-export-mode .month-schedule-viewport {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
-    padding: 10px 14px !important;
-    max-width: 100% !important;
-    width: 100% !important;
+    padding: 0 !important;
+    width: 95% !important;
+    max-width: 1040px !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
+    zoom: 0.94 !important;
 }
 
 body.pdf-export-mode .weeks-stack {
     width: 100% !important;
-    gap: 24px !important;
+    gap: 16px !important;
 }
 
 body.pdf-export-mode .week-card {
-    margin-bottom: 24px !important;
-    box-shadow: none !important;
-    border: 1px solid var(--slate-300) !important;
-    border-radius: var(--radius-lg) !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: var(--radius-md) !important;
     overflow: hidden !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    background-color: #FFFFFF !important;
+}
+
+/* MINIMALIST ARCHITECTURAL AUTHOR FOOTER IN PDF EXPORT MODE */
+body.pdf-export-mode .app-author-footer {
+    display: flex !important;
+    background-color: #F8FAFC !important;
+    border: 1px solid #E2E8F0 !important;
+    color: #475569 !important;
+    margin-top: 16px !important;
+    padding: 10px 16px !important;
+    box-shadow: none !important;
+    border-radius: var(--radius-md) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 10px !important;
+    page-break-inside: avoid !important;
+}
+
+body.pdf-export-mode .app-author-footer .author-label strong,
+body.pdf-export-mode .app-author-footer .system-version {
+    color: #0F172A !important;
+    font-weight: 700 !important;
+}
+
+body.pdf-export-mode .app-author-footer .author-dept {
+    color: #64748B !important;
+}
+
+body.pdf-export-mode .app-author-footer .author-social-links {
+    display: flex !important;
+    gap: 6px !important;
+}
+
+body.pdf-export-mode .app-author-footer .social-link {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    color: #475569 !important;
+    width: 22px !important;
+    height: 22px !important;
 }
 
 body.pdf-export-mode .timeline-header-row,
@@ -1724,6 +1876,58 @@ body.pdf-export-mode .task-card {
     border-color: var(--slate-400);
     color: var(--white);
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ==========================================================================
+   SMOOTH VIEW TRANSITIONS & THEME MORPHING ANIMATIONS (SUN / MOON)
+   ========================================================================== */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+    z-index: 1;
+}
+::view-transition-new(root) {
+    z-index: 9999;
+}
+body.dark-theme::view-transition-old(root) {
+    z-index: 9999;
+}
+body.dark-theme::view-transition-new(root) {
+    z-index: 1;
+}
+
+/* SMOOTH SURFACE COLOR TRANSITION ON FALLBACK */
+body, 
+.app-header, 
+.week-card, 
+.week-card-header, 
+.timeline-header-row, 
+.time-header-cell, 
+.day-header-cell, 
+.day-code, 
+.timeline-grid, 
+.horizontal-grid-line, 
+.vertical-grid-line, 
+.task-card, 
+.btn-icon, 
+.cloud-sync-badge,
+.legend-item {
+    transition: background-color 1.0s cubic-bezier(0.16, 1, 0.3, 1), 
+                border-color 1.0s cubic-bezier(0.16, 1, 0.3, 1), 
+                color 1.0s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 1.0s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* THEME BUTTON SPIN ANIMATION */
+#btn-theme-toggle svg {
+    transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#btn-theme-toggle.theme-spin svg {
+    transform: rotate(360deg) scale(1.25);
 }
 
 /* ==========================================================================

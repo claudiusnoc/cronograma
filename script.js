@@ -243,7 +243,7 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
 }
 
 // MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL NA NUVEM (CRUDCRUD CLOUD MASTER ENDPOINT)
-const CLOUD_MASTER_ENDPOINT = 'https://crudcrud.com/api/308c872244054020b2de80527fa2cc7a/schedule/6a6b52ba80807903e8b0e400';
+const CLOUD_MASTER_ENDPOINT = 'https://crudcrud.com/api/c33fb3fe28554772aa3c8886b0408c4c/schedule/6a6b604e80807903e8b0e40c';
 let cloudSaveTimer = null;
 let isSavingToCloud = false;
 
@@ -280,23 +280,14 @@ async function syncFromCloud(isInitial = false) {
 
             if (targetData && Array.isArray(targetData.weeks)) {
                 if (targetData.weeks.length === 0 && appData && Array.isArray(appData.weeks) && appData.weeks.length > 0) {
-                    // Endpoint da nuvem está vazio: popula a nuvem com os dados locais!
+                    // Se o endpoint da nuvem estiver recém-criado/vazio, envia o estado local atual
                     pushToCloud();
                 } else if (targetData.weeks.length > 0) {
-                    // Preserva títulos de semanas personalizados se a nuvem contiver títulos padrão
-                    const mergedWeeks = targetData.weeks.map(cloudWeek => {
-                        const localWeek = appData && appData.weeks ? appData.weeks.find(w => w.id === cloudWeek.id) : null;
-                        if (localWeek && localWeek.title && localWeek.title !== cloudWeek.title && !cloudWeek.title.includes('Novo Ciclo')) {
-                            // Mantém o título local se for mais específico
-                            return { ...cloudWeek, title: cloudWeek.title || localWeek.title };
-                        }
-                        return cloudWeek;
-                    });
-
+                    // A NUVEM É A AUTORIDADE SUPREMA: atualiza o aplicativo e o localStorage local
                     const cleanData = {
-                        title: targetData.title || appData.title,
-                        subtitle: targetData.subtitle || appData.subtitle,
-                        weeks: mergedWeeks
+                        title: targetData.title || (appData ? appData.title : 'BHE ES'),
+                        subtitle: targetData.subtitle || (appData ? appData.subtitle : ''),
+                        weeks: targetData.weeks
                     };
 
                     const cloudJson = JSON.stringify(cleanData);
@@ -1457,16 +1448,16 @@ document.getElementById('btn-export').addEventListener('click', () => {
     const element = document.querySelector('.month-schedule-viewport');
     
     const opt = {
-        margin:       [8, 8, 8, 8],
-        filename:     `Cronograma_MGCEN00_Espirito_Santo.pdf`,
+        margin:       [5, 5, 5, 5],
+        filename:     `Cronograma_BHE_ES_Claudius.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
+        enableLinks:  true,
         html2canvas:  { 
             scale: 2, 
             useCORS: true,
             logging: false,
             scrollX: 0,
-            scrollY: 0,
-            windowWidth: 1280
+            scrollY: 0
         },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
         pagebreak:    { mode: ['css', 'legacy'], avoid: '.week-card' }
@@ -1637,18 +1628,60 @@ function applyThemeState() {
     }
 }
 
-function toggleDarkMode() {
-    isDarkMode = !isDarkMode;
-    localStorage.setItem('mgcen00_dark_theme', isDarkMode ? 'true' : 'false');
-    applyThemeState();
-    showToast(isDarkMode ? '🌙 Modo Escuro Ativado' : '☀️ Modo Claro Ativado');
+function toggleDarkMode(event) {
+    const changeTheme = () => {
+        isDarkMode = !isDarkMode;
+        localStorage.setItem('mgcen00_dark_theme', isDarkMode ? 'true' : 'false');
+        applyThemeState();
+        showToast(isDarkMode ? '🌙 Modo Escuro Ativado' : '☀️ Modo Claro Ativado');
+    };
+
+    const themeBtn = document.getElementById('btn-theme-toggle');
+    if (themeBtn) {
+        themeBtn.classList.add('theme-spin');
+        setTimeout(() => themeBtn.classList.remove('theme-spin'), 750);
+    }
+
+    if (document.startViewTransition && event && event.clientX) {
+        const x = event.clientX;
+        const y = event.clientY;
+        const endRadius = Math.hypot(
+            Math.max(x, window.innerWidth - x),
+            Math.max(y, window.innerHeight - y)
+        );
+
+        const transition = document.startViewTransition(() => {
+            changeTheme();
+        });
+
+        transition.ready.then(() => {
+            const clipPath = [
+                `circle(0px at ${x}px ${y}px)`,
+                `circle(${endRadius}px at ${x}px ${y}px)`
+            ];
+            document.documentElement.animate(
+                {
+                    clipPath: isDarkMode ? clipPath.reverse() : clipPath
+                },
+                {
+                    duration: 1150,
+                    easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+                    pseudoElement: isDarkMode
+                        ? '::view-transition-old(root)'
+                        : '::view-transition-new(root)'
+                }
+            );
+        });
+    } else {
+        changeTheme();
+    }
 }
 
 function setupThemeController() {
     applyThemeState();
     const themeBtn = document.getElementById('btn-theme-toggle');
     if (themeBtn) {
-        themeBtn.addEventListener('click', toggleDarkMode);
+        themeBtn.addEventListener('click', (e) => toggleDarkMode(e));
     }
 }
 
