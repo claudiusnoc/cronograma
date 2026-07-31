@@ -24,8 +24,8 @@ const TIME_SLOTS = [
 ];
 
 const defaultData = {
-    title: 'Cronograma Geral de Manutenção Preventiva',
-    subtitle: 'Sistemas de Climatização (HVAC), Refrigeração e Infraestrutura Elétrica • Unidade BHE ES',
+    title: 'BHE ES',
+    subtitle: 'ESPÍRITO SANTO N°1000',
     weeks: [
         // SEMANA 1
         {
@@ -122,6 +122,331 @@ const defaultData = {
 
 let appData = null;
 
+// MOTOR MULTI-PERFIL DE CRONOGRAMAS INDEPENDENTES (MULTI-SCHEDULE STORE)
+let multiProfileStore = {
+    activeProfileId: 'bhe_es',
+    profiles: []
+};
+
+function ensureMultiProfileStructure(storedObj) {
+    if (storedObj && Array.isArray(storedObj.profiles) && storedObj.profiles.length > 0 && storedObj.activeProfileId) {
+        multiProfileStore = storedObj;
+        multiProfileStore.profiles.forEach(p => {
+            if (p.name === 'Cronograma Geral de Manutenção Preventiva') {
+                p.name = 'BHE ES';
+            }
+        });
+    } else {
+        let baseTitle = (storedObj && storedObj.title && storedObj.title !== 'Cronograma Geral de Manutenção Preventiva') ? storedObj.title : 'BHE ES';
+        const baseSub = (storedObj && storedObj.subtitle) ? storedObj.subtitle : 'ESPÍRITO SANTO N°1000';
+        const baseWeeks = (storedObj && Array.isArray(storedObj.weeks) && storedObj.weeks.length > 0) ? storedObj.weeks : defaultData.weeks;
+        const baseFloating = (storedObj && Array.isArray(storedObj.floatingTasks)) ? storedObj.floatingTasks : [];
+
+        multiProfileStore = {
+            activeProfileId: 'bhe_es',
+            profiles: [
+                {
+                    id: 'bhe_es',
+                    name: baseTitle,
+                    subtitle: baseSub,
+                    weeks: baseWeeks,
+                    floatingTasks: baseFloating
+                }
+            ]
+        };
+    }
+
+    let active = multiProfileStore.profiles.find(p => p.id === multiProfileStore.activeProfileId);
+    if (!active) {
+        active = multiProfileStore.profiles[0];
+        multiProfileStore.activeProfileId = active.id;
+    }
+    appData = active;
+}
+
+function getActiveProfile() {
+    let active = multiProfileStore.profiles.find(p => p.id === multiProfileStore.activeProfileId);
+    if (!active && multiProfileStore.profiles.length > 0) {
+        active = multiProfileStore.profiles[0];
+        multiProfileStore.activeProfileId = active.id;
+    }
+    return active;
+}
+
+function updateHeaderProfileInfo(force = false) {
+    const active = getActiveProfile();
+    const titleEl = document.getElementById('active-profile-title');
+    const subEl = document.getElementById('active-profile-subtitle');
+
+    if (force && document.activeElement && (document.activeElement === titleEl || document.activeElement === subEl)) {
+        document.activeElement.blur();
+    }
+
+    if (titleEl && (force || document.activeElement !== titleEl)) {
+        titleEl.textContent = active.name || 'BHE ES';
+    }
+    if (subEl && (force || document.activeElement !== subEl)) {
+        subEl.textContent = active.subtitle || 'ESPÍRITO SANTO N°1000';
+    }
+    document.title = `${active.name || 'BHE ES'} | Cronograma de Manutenção`;
+}
+
+function renderProfileDropdown() {
+    const container = document.getElementById('profile-list-container');
+    const countBadge = document.getElementById('profile-count-badge');
+    if (!container) return;
+
+    container.innerHTML = '';
+    if (countBadge) countBadge.textContent = multiProfileStore.profiles.length;
+
+    if (multiProfileStore.profiles.length > 4) {
+        container.classList.add('has-scroll');
+    } else {
+        container.classList.remove('has-scroll');
+    }
+
+    multiProfileStore.profiles.forEach(prof => {
+        const item = document.createElement('div');
+        const isActive = (prof.id === multiProfileStore.activeProfileId);
+        item.className = `profile-item ${isActive ? 'active' : ''}`;
+        
+        item.innerHTML = `
+            <div class="profile-item-info">
+                <span class="profile-item-name">${escapeHtml(prof.name)}</span>
+                <span class="profile-item-sub">${escapeHtml(prof.subtitle || 'Cronograma de Manutenção')} · ${prof.weeks ? prof.weeks.length : 0} semanas</span>
+            </div>
+            <div class="profile-item-actions">
+                ${isActive ? '<span class="profile-item-check" title="Perfil Ativo">✓</span>' : ''}
+                ${multiProfileStore.profiles.length > 1 ? `<button class="profile-item-del-btn" title="Excluir este cronograma" data-prof-id="${escapeHtml(prof.id)}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>` : ''}
+            </div>
+        `;
+
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.profile-item-del-btn')) return;
+            switchProfile(prof.id);
+        });
+
+        const delBtn = item.querySelector('.profile-item-del-btn');
+        if (delBtn) {
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteProfile(prof.id);
+            });
+        }
+
+        container.appendChild(item);
+    });
+}
+
+function toggleProfileDropdown(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('profile-dropdown-menu');
+    const brandBtn = document.getElementById('btn-profile-selector');
+    if (!menu) return;
+
+    const isHidden = menu.classList.contains('hidden');
+    if (isHidden) {
+        renderProfileDropdown();
+        menu.classList.remove('hidden');
+        if (brandBtn) brandBtn.classList.add('active');
+    } else {
+        closeProfileDropdown();
+    }
+}
+
+function closeProfileDropdown() {
+    const menu = document.getElementById('profile-dropdown-menu');
+    const brandBtn = document.getElementById('btn-profile-selector');
+    if (menu) menu.classList.add('hidden');
+    if (brandBtn) brandBtn.classList.remove('active');
+}
+
+function switchProfile(profileId) {
+    if (multiProfileStore.activeProfileId === profileId) return;
+    recordState();
+
+    // 1. Atualiza o ID do perfil ativo IMEDIATAMENTE, forçando blur e re-render do menu
+    multiProfileStore.activeProfileId = profileId;
+    appData = getActiveProfile();
+    updateHeaderProfileInfo(true);
+    renderProfileDropdown();
+
+    // 2. Animação fluida de transição do cabeçalho
+    const brandText = document.querySelector('.brand-text');
+    if (brandText) {
+        brandText.style.transition = 'opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1), transform 0.16s cubic-bezier(0.16, 1, 0.3, 1)';
+        brandText.style.opacity = '0.3';
+        brandText.style.transform = 'translateY(-3px)';
+    }
+
+    setTimeout(() => {
+        saveData();
+        updateHeaderProfileInfo(true);
+
+        if (brandText) {
+            brandText.style.opacity = '1';
+            brandText.style.transform = 'translateY(0)';
+        }
+
+        renderHourlyGridDashboard();
+        showToast(`📂 Cronograma "${appData.name}" carregado`);
+    }, 130);
+
+    // 3. Fecha o menu dropdown de forma fluida após 220ms
+    setTimeout(() => {
+        closeProfileDropdown();
+    }, 220);
+}
+
+function createNewProfile(name, subtitle) {
+    recordState();
+    const newId = 'prof_' + Date.now();
+    const cleanWeeks = [1, 2, 3, 4].map((num) => ({
+        id: `w_${newId}_${num}`,
+        title: `Semana ${num}`,
+        tasks: []
+    }));
+
+    const newProfile = {
+        id: newId,
+        name: name.trim() || 'Novo Cronograma',
+        subtitle: subtitle.trim() || 'Unidade de Manutenção',
+        weeks: cleanWeeks,
+        floatingTasks: []
+    };
+
+    multiProfileStore.profiles.push(newProfile);
+    multiProfileStore.activeProfileId = newId;
+    appData = newProfile;
+
+    saveData();
+    updateHeaderProfileInfo();
+    renderHourlyGridDashboard();
+    showToast(`✨ Novo cronograma "${newProfile.name}" criado com sucesso!`);
+}
+
+function duplicateProfile(profileId) {
+    const source = multiProfileStore.profiles.find(p => p.id === profileId) || getActiveProfile();
+    if (!source) return;
+
+    recordState();
+    const newId = 'prof_' + Date.now();
+    const cloned = JSON.parse(JSON.stringify(source));
+    cloned.id = newId;
+    cloned.name = `${source.name} (Cópia)`;
+
+    multiProfileStore.profiles.push(cloned);
+    multiProfileStore.activeProfileId = newId;
+    appData = cloned;
+
+    saveData();
+    updateHeaderProfileInfo();
+    renderHourlyGridDashboard();
+    showToast(`📋 Cronograma duplicado como "${cloned.name}"`);
+}
+
+function confirmProfileDeletionSecurity(profileName) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('modal-profile-delete-confirm');
+        const profNameEl = document.getElementById('del-security-prof-name');
+        const inputEl = document.getElementById('delete-security-input');
+        const btnCancel = document.getElementById('btn-cancel-del-security');
+        const btnConfirm = document.getElementById('btn-confirm-del-security');
+        const btnCloseX = document.getElementById('btn-close-del-security-x');
+
+        if (!modal) return resolve(false);
+
+        if (profNameEl) profNameEl.textContent = profileName;
+        if (inputEl) {
+            inputEl.value = '';
+            inputEl.classList.remove('valid');
+        }
+        if (btnConfirm) btnConfirm.disabled = true;
+
+        const cleanup = () => {
+            modal.classList.add('hidden');
+            btnCancel.removeEventListener('click', onCancel);
+            btnConfirm.removeEventListener('click', onConfirm);
+            btnCloseX.removeEventListener('click', onCancel);
+            if (inputEl) inputEl.removeEventListener('input', onInput);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+
+        const onCancel = () => {
+            cleanup();
+            resolve(false);
+        };
+
+        const onConfirm = () => {
+            if (btnConfirm.disabled) return;
+            cleanup();
+            resolve(true);
+        };
+
+        const onInput = () => {
+            const typed = inputEl.value.trim().toUpperCase();
+            if (typed === 'EXCLUIR') {
+                btnConfirm.disabled = false;
+                inputEl.classList.add('valid');
+            } else {
+                btnConfirm.disabled = true;
+                inputEl.classList.remove('valid');
+            }
+        };
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                if (!btnConfirm.disabled) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onConfirm();
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                onCancel();
+            }
+        };
+
+        btnCancel.addEventListener('click', onCancel);
+        btnConfirm.addEventListener('click', onConfirm);
+        btnCloseX.addEventListener('click', onCancel);
+        if (inputEl) inputEl.addEventListener('input', onInput);
+        document.addEventListener('keydown', onKeyDown);
+
+        modal.classList.remove('hidden');
+        setTimeout(() => inputEl?.focus(), 60);
+    });
+}
+
+async function deleteProfile(profileId) {
+    if (multiProfileStore.profiles.length <= 1) {
+        showToast('⚠️ Não é possível excluir o único cronograma do sistema.');
+        return;
+    }
+
+    const target = multiProfileStore.profiles.find(p => p.id === profileId);
+    if (!target) return;
+
+    closeProfileDropdown();
+    const confirmed = await confirmProfileDeletionSecurity(target.name);
+
+    if (confirmed) {
+        recordState();
+        multiProfileStore.profiles = multiProfileStore.profiles.filter(p => p.id !== profileId);
+        if (multiProfileStore.activeProfileId === profileId) {
+            multiProfileStore.activeProfileId = multiProfileStore.profiles[0].id;
+        }
+        appData = getActiveProfile();
+        saveData();
+        updateHeaderProfileInfo();
+        renderHourlyGridDashboard();
+        showToast(`🗑️ Cronograma "${target.name}" foi permanentemente excluído`);
+    }
+}
+
 // Track drag/resize state
 let wasDraggingOrResizing = false;
 
@@ -140,7 +465,7 @@ const MAX_HISTORY = 40;
 
 function recordState() {
     if (appData) {
-        historyStack.push(JSON.stringify(appData));
+        historyStack.push(JSON.stringify(multiProfileStore));
         if (historyStack.length > MAX_HISTORY) {
             historyStack.shift();
         }
@@ -150,8 +475,9 @@ function recordState() {
 
 function undoAction() {
     if (historyStack.length > 0) {
-        redoStack.push(JSON.stringify(appData));
-        appData = JSON.parse(historyStack.pop());
+        redoStack.push(JSON.stringify(multiProfileStore));
+        multiProfileStore = JSON.parse(historyStack.pop());
+        appData = getActiveProfile();
         saveData();
         renderHourlyGridDashboard();
         showToast('↩️ Ação desfeita (Ctrl+Z)');
@@ -162,8 +488,9 @@ function undoAction() {
 
 function redoAction() {
     if (redoStack.length > 0) {
-        historyStack.push(JSON.stringify(appData));
-        appData = JSON.parse(redoStack.pop());
+        historyStack.push(JSON.stringify(multiProfileStore));
+        multiProfileStore = JSON.parse(redoStack.pop());
+        appData = getActiveProfile();
         saveData();
         renderHourlyGridDashboard();
         showToast('↪️ Ação refeita (Ctrl+Y)');
@@ -181,9 +508,8 @@ function showToast(msg) {
     toast.classList.remove('toast-exit');
     toastMsg.textContent = msg;
     toast.classList.remove('hidden');
-    // Force re-trigger entrance animation
     toast.style.animation = 'none';
-    toast.offsetHeight; // reflow
+    toast.offsetHeight;
     toast.style.animation = '';
 
     if (toastTimer) clearTimeout(toastTimer);
@@ -192,7 +518,7 @@ function showToast(msg) {
         setTimeout(() => {
             toast.classList.add('hidden');
             toast.classList.remove('toast-exit');
-        }, 200);
+        }, 220);
     }, 2000);
 }
 
@@ -221,6 +547,7 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
             btnCancel.removeEventListener('click', onCancel);
             btnAction.removeEventListener('click', onConfirm);
             btnCloseX.removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onKeyDown);
         };
 
         const onCancel = () => {
@@ -233,11 +560,25 @@ function confirmSystemDialog(title, message, confirmText = 'Excluir', isDanger =
             resolve(true);
         };
 
+        const onKeyDown = (e) => {
+            if (e.key === 'Delete' || e.key === 'Del' || e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                onConfirm();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                onCancel();
+            }
+        };
+
         btnCancel.addEventListener('click', onCancel);
         btnAction.addEventListener('click', onConfirm);
         btnCloseX.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKeyDown);
 
         sysModal.classList.remove('hidden');
+        btnAction.focus();
     });
 }
 
@@ -261,15 +602,15 @@ function updateCloudBadge(state, text) {
     if (state === 'online') {
         badge.title = 'Sincronizado na Nuvem Permanente (JSONBin.io) · Clique para atualizar';
         if (statusTextEl) statusTextEl.textContent = 'NUVEM SINC';
-        if (svgEl) svgEl.innerHTML = '<path d="M17.5 19a5 5 0 0 0 2-9.19M18 10a5 5 0 0 0-3.79 8.25M6.5 19h11a4.5 4.5 0 0 0 2.5-8.24 7 7 0 0 0-13.44-2.12A4.5 4.5 0 0 0 6.5 19z"></path><polyline points="9 13 11 15 15 11"></polyline>';
+        if (svgEl) svgEl.innerHTML = '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path><polyline points="9 13.5 11.5 16 16.5 11"></polyline>';
     } else if (state === 'syncing') {
         badge.title = 'Enviando alterações para a nuvem permanente...';
         if (statusTextEl) statusTextEl.textContent = 'SALVANDO...';
-        if (svgEl) svgEl.innerHTML = '<path d="M17.5 19a5 5 0 0 0 2-9.19M18 10a5 5 0 0 0-3.79 8.25M6.5 19h11a4.5 4.5 0 0 0 2.5-8.24 7 7 0 0 0-13.44-2.12A4.5 4.5 0 0 0 6.5 19z"></path><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line>';
+        if (svgEl) svgEl.innerHTML = '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path><path d="M12 12v5m0-5-2 2m2-2 2 2"></path>';
     } else {
         badge.title = 'Modo Local (dados salvos no armazenamento local)';
         if (statusTextEl) statusTextEl.textContent = 'MODO LOCAL';
-        if (svgEl) svgEl.innerHTML = '<path d="m2 2 20 20"></path><path d="M5.782 5.782A4.5 4.5 0 0 0 6.5 19h11a4.5 4.5 0 0 0 2.5-.75"></path><path d="M21.5 15.5A4.5 4.5 0 0 0 18 10a5 5 0 0 0-3.79-3.75"></path>';
+        if (svgEl) svgEl.innerHTML = '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path><line x1="4" y1="4" x2="20" y2="20"></line>';
     }
 }
 
@@ -283,23 +624,16 @@ async function syncFromCloud(isInitial = false) {
             const dataObj = await res.json();
             const targetData = (dataObj && dataObj.record) ? dataObj.record : null;
 
-            if (targetData && Array.isArray(targetData.weeks)) {
-                if (targetData.weeks.length > 0) {
-                    // A NUVEM PERMANENTE É A AUTORIDADE SUPREMA
-                    const cleanData = {
-                        title: targetData.title || (appData ? appData.title : 'BHE ES'),
-                        subtitle: targetData.subtitle || (appData ? appData.subtitle : ''),
-                        weeks: targetData.weeks
-                    };
+            if (targetData && typeof targetData === 'object' && targetData.profiles && Array.isArray(targetData.profiles)) {
+                const cloudJson = JSON.stringify(targetData);
+                const localJson = JSON.stringify(multiProfileStore);
 
-                    const cloudJson = JSON.stringify(cleanData);
-                    const localJson = JSON.stringify(appData);
-
-                    if (cloudJson !== localJson) {
-                        appData = cleanData;
-                        localStorage.setItem(STORAGE_KEY, cloudJson);
-                        renderHourlyGridDashboard();
-                    }
+                if (cloudJson !== localJson) {
+                    ensureMultiProfileStructure(targetData);
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(multiProfileStore));
+                    } catch (e) {}
+                    renderHourlyGridDashboard();
                 }
                 updateCloudBadge('online', 'Nuvem ON');
                 return true;
@@ -317,11 +651,7 @@ async function pushToCloud() {
     isSavingToCloud = true;
     updateCloudBadge('syncing', 'Salvando...');
     try {
-        const payload = {
-            title: appData.title,
-            subtitle: appData.subtitle,
-            weeks: appData.weeks
-        };
+        const payload = multiProfileStore;
 
         const res = await fetch(JSONBIN_WRITE_URL, {
             method: 'PUT',
@@ -365,25 +695,30 @@ function loadData() {
         }
     }
 
+    let parsed = null;
     if (saved) {
         try { 
-            appData = JSON.parse(saved); 
+            parsed = JSON.parse(saved); 
         } catch (e) { 
-            appData = JSON.parse(JSON.stringify(defaultData)); 
+            parsed = null; 
         }
     }
 
-    if (!appData || !Array.isArray(appData.weeks) || appData.weeks.length === 0) {
-        appData = JSON.parse(JSON.stringify(defaultData));
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-    }
+    ensureMultiProfileStructure(parsed);
 
     // Sincroniza a versão mais recente da nuvem em segundo plano
     syncFromCloud(true);
 }
 
 function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(multiProfileStore));
+    } catch (e) {
+        console.error('Erro ao salvar no LocalStorage:', e);
+        if (e.name === 'QuotaExceededError' || e.code === 22) {
+            showToast('⚠️ Armazenamento local cheio. Dados salvos na nuvem.');
+        }
+    }
     triggerCloudSave();
 }
 
@@ -413,8 +748,12 @@ function hasTaskCollision(weekId, day, startRow, duration, excludeTaskId = null)
 }
 
 // Render Master View
-function renderHourlyGridDashboard() {
+function renderHourlyGridDashboard(highlightWeekId = null) {
+    appData = getActiveProfile();
+    updateHeaderProfileInfo();
+
     const stack = document.getElementById('weeks-stack');
+    if (!stack) return;
     stack.innerHTML = '';
 
     appData.weeks.forEach((week, weekIndex) => {
@@ -422,21 +761,39 @@ function renderHourlyGridDashboard() {
         card.className = 'week-card';
         card.dataset.weekId = week.id;
 
+        if (highlightWeekId && week.id === highlightWeekId) {
+            card.classList.add('week-card-highlight');
+            setTimeout(() => {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+
         // Card Header
         const header = document.createElement('div');
         header.className = 'week-card-header';
         header.innerHTML = `
             <div class="week-title-group">
-                <span class="week-badge">SEMANA ${weekIndex + 1}</span>
-                <h3 contenteditable="true" spellcheck="false" title="Clique para editar o título da semana">${week.title}</h3>
-                <span class="week-count-badge">${week.tasks.length} ${week.tasks.length === 1 ? 'tarefa' : 'tarefas'}</span>
+                <span class="week-badge"><span class="badge-dot"></span>SEMANA ${weekIndex + 1}</span>
+                <h3 contenteditable="true" spellcheck="false" data-placeholder="Digite o título personalizado da semana..." title="Clique para editar o título da semana">${escapeHtml(week.title || '')}</h3>
+                <span class="week-count-badge">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                    ${week.tasks.length} ${week.tasks.length === 1 ? 'tarefa' : 'tarefas'}
+                </span>
             </div>
-            <button class="btn-icon-delete-week" title="Excluir esta semana">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </button>
+            <div class="week-actions" style="display: flex; align-items: center; gap: 4px;">
+                <button class="btn-icon-copy-week" title="Duplicar / Copiar esta semana">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+                <button class="btn-icon-delete-week" title="Excluir esta semana">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
         `;
 
         // Auto-save for week title
@@ -444,8 +801,8 @@ function renderHourlyGridDashboard() {
         titleH3.addEventListener('focus', () => recordState());
 
         const saveWeekTitle = () => {
-            const cleanTitle = titleH3.innerText.replace(/[\r\n]+/g, ' ').trim() || `Semana ${weekIndex + 1}`;
-            week.title = cleanTitle;
+            const cleanTitle = titleH3.innerText.replace(/[\r\n]+/g, ' ').trim();
+            week.title = cleanTitle || `Semana ${weekIndex + 1}`;
             saveData();
             populateModalSelects();
         };
@@ -459,6 +816,29 @@ function renderHourlyGridDashboard() {
 
         titleH3.addEventListener('input', saveWeekTitle);
         titleH3.addEventListener('blur', saveWeekTitle);
+
+        header.querySelector('.btn-icon-copy-week').addEventListener('click', (e) => {
+            e.stopPropagation();
+            recordState();
+            
+            // Deep clone week and tasks
+            const clonedWeek = JSON.parse(JSON.stringify(week));
+            clonedWeek.id = 'w' + Date.now();
+            clonedWeek.title = clonedWeek.title + ' (Cópia)';
+            
+            // Generate new IDs for cloned tasks
+            clonedWeek.tasks.forEach((t, i) => {
+                t.id = 't' + Date.now() + i;
+            });
+            
+            // Insert cloned week exactly after the current week
+            const currentIndex = appData.weeks.findIndex(w => w.id === week.id);
+            appData.weeks.splice(currentIndex + 1, 0, clonedWeek);
+            
+            saveData();
+            renderHourlyGridDashboard(clonedWeek.id);
+            showToast('📋 Semana duplicada e destacada abaixo!');
+        });
 
         header.querySelector('.btn-icon-delete-week').addEventListener('click', async () => {
             if (appData.weeks.length <= 1) {
@@ -585,8 +965,13 @@ function renderHourlyGridDashboard() {
             taskCard.dataset.taskId = task.id;
             taskCard.dataset.weekId = week.id;
 
+            let spanGridTracks = task.duration;
+            if (task.startRow < 5 && (task.startRow + task.duration) > 5) {
+                spanGridTracks = task.duration + 1;
+            }
+
             taskCard.style.gridColumn = `${task.day + 1}`;
-            taskCard.style.gridRow = `${task.startRow} / span ${task.duration}`;
+            taskCard.style.gridRow = `${task.startRow} / span ${spanGridTracks}`;
 
             taskCard.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
@@ -696,6 +1081,28 @@ function renderHourlyGridDashboard() {
                     `;
                 }
 
+                // INJEÇÃO DA PONTE FLUTUANTE DE ALMOÇO (APPLE FLOATING BRIDGE OVERLAY)
+                const overlapsLunch = task.startRow <= 5 && (task.startRow + task.duration - 1) >= 5;
+                if (overlapsLunch) {
+                    const offset = (5 - task.startRow) * getRowHeight();
+                    taskCard.insertAdjacentHTML('beforeend', `
+                        <div class="lunch-overlay" style="top: ${offset}px; height: ${getRowHeight()}px;">
+                            <div class="lunch-overlay-content">
+                                <span class="lunch-pill">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                                        <line x1="6" y1="2" x2="6" y2="4"></line>
+                                        <line x1="10" y1="2" x2="10" y2="4"></line>
+                                        <line x1="14" y1="2" x2="14" y2="4"></line>
+                                    </svg>
+                                    12:00 – 13:00 • Pausa
+                                </span>
+                            </div>
+                        </div>
+                    `);
+                }
+
                 taskCard.querySelector('.task-delete-btn').addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const confirmed = await confirmSystemDialog(
@@ -756,6 +1163,84 @@ function renderHourlyGridDashboard() {
 
     setupInteractions();
     applyCategoryFilter();
+    renderFloatingStagingArea();
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderFloatingStagingArea() {
+    const area = document.getElementById('floating-staging-area');
+    const container = document.getElementById('staging-cards-container');
+    const countBadge = document.getElementById('staging-count');
+    if (!area || !container) return;
+
+    if (!appData.floatingTasks) appData.floatingTasks = [];
+
+    if (appData.floatingTasks.length === 0) {
+        area.classList.add('hidden');
+        container.innerHTML = '';
+        if (countBadge) countBadge.textContent = '0';
+        return;
+    }
+
+    area.classList.remove('hidden');
+    container.innerHTML = '';
+    if (countBadge) countBadge.textContent = appData.floatingTasks.length;
+
+    appData.floatingTasks.forEach(task => {
+        const card = document.createElement('div');
+        card.className = `task-card ${task.category || 'cat-hvac'}`;
+        card.dataset.taskId = task.id;
+        card.dataset.isFloating = 'true';
+
+        card.innerHTML = `
+            <div class="task-card-header">
+                <div class="task-header-meta">
+                    <span class="task-category-dot"></span>
+                    <span class="task-time-text">${formatDurationText(task.duration || 1)} · Mesa</span>
+                </div>
+                <button class="task-delete-btn" title="Excluir tarefa">×</button>
+            </div>
+            <div class="task-card-title">${escapeHtml(task.title || 'Sem título')}</div>
+            ${task.desc ? `<div class="task-card-desc">${escapeHtml(task.desc)}</div>` : ''}
+        `;
+
+        const deleteBtn = card.querySelector('.task-delete-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const confirmed = await confirmSystemDialog(
+                    'Excluir Tarefa',
+                    `Tem certeza que deseja excluir "${task.title}"?`,
+                    'Sim, Excluir',
+                    true
+                );
+                if (confirmed) {
+                    recordState();
+                    appData.floatingTasks = appData.floatingTasks.filter(t => t.id !== task.id);
+                    saveData();
+                    renderHourlyGridDashboard();
+                    showToast('🗑️ Tarefa excluída da mesa');
+                }
+            });
+        }
+
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(e, { task, weekId: null, isFloating: true }, null);
+        });
+
+        container.appendChild(card);
+    });
 }
 
 function getDayName(day) {
@@ -770,43 +1255,105 @@ let activeWeekObj = null;
 let interactionType = null;
 let startY, startX, startRow, startDuration, startDay;
 
+let isInteractionsInitialized = false;
+
 function setupInteractions() {
-    document.querySelectorAll('.timeline-grid').forEach(grid => {
-        grid.addEventListener('pointerdown', (e) => {
-            const taskCard = e.target.closest('.task-card');
-            if (!taskCard) return;
-            if (taskCard.classList.contains('is-editing')) return;
-            if (e.target.classList.contains('task-delete-btn')) return;
+    if (isInteractionsInitialized) return;
+    isInteractionsInitialized = true;
 
-            recordState();
+    document.addEventListener('pointerdown', (e) => {
+        const taskCard = e.target.closest('.task-card');
+        if (!taskCard) return;
+        if (taskCard.classList.contains('is-editing')) return;
+        if (e.target.classList.contains('task-delete-btn')) return;
 
-            wasDraggingOrResizing = false;
+        recordState();
+        wasDraggingOrResizing = false;
 
-            const weekId = taskCard.dataset.weekId;
+        const taskId = taskCard.dataset.taskId;
+        const weekId = taskCard.dataset.weekId;
+
+        if (weekId) {
             activeWeekObj = appData.weeks.find(w => w.id === weekId);
-            activeTaskObj = activeWeekObj.tasks.find(t => t.id === taskCard.dataset.taskId);
-            activeTaskEl = taskCard;
-            selectedTaskContext = { task: activeTaskObj, weekId };
+            activeTaskObj = activeWeekObj ? activeWeekObj.tasks.find(t => t.id === taskId) : null;
+            if (!activeTaskObj) return;
 
-            startY = e.clientY;
-            startX = e.clientX;
+            selectedTaskContext = { task: activeTaskObj, weekId };
             startRow = activeTaskObj.startRow;
             startDuration = activeTaskObj.duration;
             startDay = activeTaskObj.day;
+        } else {
+            activeWeekObj = null;
+            activeTaskObj = appData.floatingTasks ? appData.floatingTasks.find(t => t.id === taskId) : null;
+            if (!activeTaskObj) return;
 
-            if (e.target.classList.contains('resize-handle')) {
-                interactionType = 'resize';
-            } else {
-                interactionType = 'drag';
-            }
+            activeTaskObj.isFloating = true;
+            selectedTaskContext = { task: activeTaskObj, weekId: null };
+            startRow = 1;
+            startDuration = activeTaskObj.duration || 1;
+            startDay = 1;
+        }
 
-            // Remove any lingering settle class
-            activeTaskEl.classList.remove('is-settling');
+        activeTaskEl = taskCard;
+        startY = e.clientY;
+        startX = e.clientX;
 
-            document.addEventListener('pointermove', onPointerMove);
-            document.addEventListener('pointerup', onPointerUp);
-        });
+        if (e.target.classList.contains('resize-handle')) {
+            interactionType = 'resize';
+        } else {
+            interactionType = 'drag';
+        }
+
+        activeTaskEl.classList.remove('is-settling');
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
     });
+}
+
+let dragProxyEl = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+function createDragProxy(taskCard, mouseX, mouseY) {
+    removeDragProxy();
+
+    const rect = taskCard.getBoundingClientRect();
+    dragOffsetX = mouseX - rect.left;
+    dragOffsetY = mouseY - rect.top;
+
+    dragProxyEl = taskCard.cloneNode(true);
+    dragProxyEl.id = 'active-drag-proxy';
+    dragProxyEl.classList.add('is-dragging-proxy');
+    dragProxyEl.style.position = 'fixed';
+    dragProxyEl.style.width = `${rect.width}px`;
+    dragProxyEl.style.height = `${rect.height}px`;
+    dragProxyEl.style.left = `${mouseX - dragOffsetX}px`;
+    dragProxyEl.style.top = `${mouseY - dragOffsetY}px`;
+    dragProxyEl.style.zIndex = '999999';
+    dragProxyEl.style.pointerEvents = 'none';
+    dragProxyEl.style.margin = '0';
+    dragProxyEl.style.transform = 'rotate(-1.5deg) scale(1.04)';
+    dragProxyEl.style.boxShadow = '0 20px 48px rgba(15, 23, 42, 0.28), 0 8px 16px rgba(15, 23, 42, 0.16)';
+    dragProxyEl.style.opacity = '0.98';
+
+    document.body.appendChild(dragProxyEl);
+}
+
+function updateDragProxyPosition(mouseX, mouseY) {
+    if (dragProxyEl) {
+        dragProxyEl.style.left = `${mouseX - dragOffsetX}px`;
+        dragProxyEl.style.top = `${mouseY - dragOffsetY}px`;
+    }
+}
+
+function removeDragProxy() {
+    if (dragProxyEl) {
+        dragProxyEl.remove();
+        dragProxyEl = null;
+    }
+    const existing = document.getElementById('active-drag-proxy');
+    if (existing) existing.remove();
 }
 
 let currentDeltaX = 0;
@@ -824,7 +1371,8 @@ function onPointerMove(e) {
         if (!wasDraggingOrResizing) {
             wasDraggingOrResizing = true;
             if (interactionType === 'drag') {
-                activeTaskEl.classList.add('is-dragging');
+                createDragProxy(activeTaskEl, e.clientX, e.clientY);
+                activeTaskEl.style.opacity = '0.2';
             } else {
                 activeTaskEl.classList.add('is-resizing');
             }
@@ -839,7 +1387,6 @@ function onPointerMove(e) {
             newDuration = 10 - startRow + 1;
         }
 
-        // Anti-Colisão para Resize: Limita redimensionamento antes da próxima tarefa abaixo
         if (activeWeekObj) {
             const tasksBelow = activeWeekObj.tasks.filter(t => t.id !== activeTaskObj.id && t.day === startDay && t.startRow > startRow);
             if (tasksBelow.length > 0) {
@@ -858,118 +1405,190 @@ function onPointerMove(e) {
         if (badge) {
             badge.textContent = `${rowToTime(activeTaskObj.startRow)} · ${formatDurationText(newDuration)}`;
         }
-    } else if (interactionType === 'drag') {
-        const gridEl = activeTaskEl.closest('.timeline-grid');
-        const timeColWidth = isZoomOutMode ? 76 : 90;
-        const colWidth = (gridEl.offsetWidth - timeColWidth) / 5;
-        const rowHeight = getRowHeight();
-
-        const deltaRows = Math.round(deltaY / rowHeight);
-        const deltaDays = Math.round(deltaX / colWidth);
-
-        let previewRow = Math.max(1, startRow + deltaRows);
-        let previewDay = Math.max(1, Math.min(5, startDay + deltaDays));
-        if (previewRow === 5) previewRow = 6;
-        if (previewRow + activeTaskObj.duration - 1 > 10) {
-            previewRow = 10 - activeTaskObj.duration + 1;
-        }
-
-        const isCollision = hasTaskCollision(activeWeekObj.id, previewDay, previewRow, activeTaskObj.duration, activeTaskObj.id);
-        if (isCollision) {
-            activeTaskEl.classList.add('is-collision');
-        } else {
-            activeTaskEl.classList.remove('is-collision');
-        }
-
-        // CAMPO GRAVITACIONAL: calcula atração magnética quando próximo do centro da célula
-        const targetPixelX = (previewDay - startDay) * colWidth;
-        const targetPixelY = (previewRow - startRow) * rowHeight;
-        const dist = Math.hypot(deltaX - targetPixelX, deltaY - targetPixelY);
-        const pullRadius = 75;
-
-        if (dist < pullRadius && !isCollision) {
-            const pullFactor = Math.pow(1 - (dist / pullRadius), 1.5) * 0.38;
-            const drawnX = deltaX + (targetPixelX - deltaX) * pullFactor;
-            const drawnY = deltaY + (targetPixelY - deltaY) * pullFactor;
-            activeTaskEl.style.transform = `translate(${drawnX}px, ${drawnY}px) scale(1.03) rotate(-0.3deg)`;
-        } else {
-            activeTaskEl.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.04) rotate(-0.5deg)`;
-        }
-
-        const badge = activeTaskEl.querySelector('.task-time-text') || activeTaskEl.querySelector('.task-time-badge');
-        if (badge) {
-            badge.textContent = `${rowToTime(previewRow)} · ${formatDurationText(activeTaskObj.duration)}${isCollision ? ' 🛑 (Ocupado)' : ''}`;
-        }
+    } else if (interactionType === 'drag' && wasDraggingOrResizing) {
+        updateDragProxyPosition(e.clientX, e.clientY);
     }
 }
 
-function onPointerUp() {
+function onPointerUp(e) {
     if (!activeTaskObj) return;
 
     document.removeEventListener('pointermove', onPointerMove);
     document.removeEventListener('pointerup', onPointerUp);
 
+    removeDragProxy();
+
+    if (activeTaskEl) {
+        activeTaskEl.style.opacity = '';
+    }
+
     const wasResizing = (interactionType === 'resize');
 
-    if (interactionType === 'drag' && wasDraggingOrResizing && activeTaskEl) {
-        const gridEl = activeTaskEl.closest('.timeline-grid');
-        const timeColWidth = isZoomOutMode ? 76 : 90;
-        const colWidth = (gridEl.offsetWidth - timeColWidth) / 5;
-        const rowHeight = getRowHeight();
+    if (interactionType === 'drag' && wasDraggingOrResizing) {
+        const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
 
-        const deltaRows = Math.round(currentDeltaY / rowHeight);
-        const deltaDays = Math.round(currentDeltaX / colWidth);
-
-        let newRow = Math.max(1, startRow + deltaRows);
-        let newDay = Math.max(1, Math.min(5, startDay + deltaDays));
-        if (newRow === 5) newRow = 6;
-        if (newRow + activeTaskObj.duration - 1 > 10) {
-            newRow = 10 - activeTaskObj.duration + 1;
-        }
-
-        const isCollision = hasTaskCollision(activeWeekObj.id, newDay, newRow, activeTaskObj.duration, activeTaskObj.id);
-        const settlingEl = activeTaskEl;
-        settlingEl.classList.remove('is-dragging', 'is-resizing', 'is-collision');
-
-        if (isCollision) {
-            // REJEIÇÃO POR COLISÃO: Reverte para a posição original
-            activeTaskObj.startRow = startRow;
-            activeTaskObj.day = startDay;
-            settlingEl.style.transform = '';
-            settlingEl.style.gridColumn = `${startDay + 1}`;
-            settlingEl.style.gridRow = `${startRow} / span ${activeTaskObj.duration}`;
-            showToast('⚠️ Horário já ocupado por outra tarefa.');
-        } else {
-            // ENCAIXE INSTANTÂNEO NA CÉLULA DE DESTINO
-            activeTaskObj.startRow = newRow;
-            activeTaskObj.day = newDay;
-
-            settlingEl.style.transform = '';
-            settlingEl.style.gridColumn = `${newDay + 1}`;
-            settlingEl.style.gridRow = `${newRow} / span ${activeTaskObj.duration}`;
-
-            const badge = settlingEl.querySelector('.task-time-text') || settlingEl.querySelector('.task-time-badge');
-            if (badge) {
-                badge.textContent = `${rowToTime(newRow)} · ${formatDurationText(activeTaskObj.duration)}`;
+        let targetGridEl = elementBelow ? elementBelow.closest('.timeline-grid') : null;
+        if (!targetGridEl && elementBelow) {
+            const weekCard = elementBelow.closest('.week-card');
+            if (weekCard) {
+                targetGridEl = weekCard.querySelector('.timeline-grid');
             }
         }
 
-        // Leve micro-ajuste rápido de encaixe (0.1s)
-        settlingEl.classList.add('is-settling');
-        setTimeout(() => {
-            settlingEl.classList.remove('is-settling');
-            settlingEl.style.zIndex = '';
-        }, 100);
-    } else if (activeTaskEl) {
-        activeTaskEl.classList.remove('is-dragging', 'is-resizing', 'is-collision');
-        activeTaskEl.style.transform = '';
-        activeTaskEl.style.zIndex = '';
-    }
+        if (!targetGridEl) {
+            // SOLTOU FORA DE UM CRONOGRAMA -> ANIMAÇÃO DE VOO ATÉ O FINAL DA MESA DE IDEIAS
+            const dropX = e.clientX;
+            const dropY = e.clientY;
+            const stagingArea = document.getElementById('floating-staging-area');
 
-    saveData();
+            let targetX = window.innerWidth - 230;
+            let targetY = 60;
 
-    if (wasResizing && wasDraggingOrResizing) {
+            if (stagingArea) {
+                const wasHidden = stagingArea.classList.contains('hidden');
+                if (wasHidden) stagingArea.classList.remove('hidden');
+
+                const cards = stagingArea.querySelectorAll('.staging-cards-container .task-card');
+                if (cards.length > 0) {
+                    // Se existe último card, voa exatamente para ABAIXO do último card!
+                    const lastCard = cards[cards.length - 1];
+                    const lastRect = lastCard.getBoundingClientRect();
+                    targetX = lastRect.left;
+                    targetY = lastRect.bottom + 6;
+                } else {
+                    // Se não tiver nenhum card, voa para o topo da fila da mesa!
+                    const container = stagingArea.querySelector('.staging-cards-container') || stagingArea;
+                    const containerRect = container.getBoundingClientRect();
+                    targetX = containerRect.left > 10 ? containerRect.left + 4 : (window.innerWidth - 230);
+                    targetY = containerRect.top > 10 ? containerRect.top + 32 : 60;
+                }
+            }
+
+            if (activeTaskEl) {
+                const flyingClone = activeTaskEl.cloneNode(true);
+                flyingClone.id = 'flying-task-clone';
+                flyingClone.className = `task-card ${activeTaskObj.category || 'cat-hvac'} is-flying-clone`;
+                flyingClone.style.position = 'fixed';
+                flyingClone.style.width = '210px';
+                flyingClone.style.left = `${dropX - dragOffsetX}px`;
+                flyingClone.style.top = `${dropY - dragOffsetY}px`;
+                flyingClone.style.zIndex = '999999';
+                flyingClone.style.pointerEvents = 'none';
+                flyingClone.style.transition = 'all 0.42s cubic-bezier(0.16, 1, 0.3, 1)';
+                flyingClone.style.transform = 'rotate(-4deg) scale(1.05)';
+                flyingClone.style.boxShadow = '0 20px 48px rgba(15, 23, 42, 0.3)';
+
+                document.body.appendChild(flyingClone);
+
+                requestAnimationFrame(() => {
+                    flyingClone.style.left = `${targetX}px`;
+                    flyingClone.style.top = `${targetY}px`;
+                    flyingClone.style.transform = 'rotate(-1.8deg) scale(0.96)';
+                    flyingClone.style.opacity = '0.85';
+                });
+
+                setTimeout(() => {
+                    if (flyingClone) flyingClone.remove();
+
+                    recordState();
+                    if (activeWeekObj) {
+                        activeWeekObj.tasks = activeWeekObj.tasks.filter(t => t.id !== activeTaskObj.id);
+                    }
+                    if (!appData.floatingTasks) appData.floatingTasks = [];
+                    if (!appData.floatingTasks.some(t => t.id === activeTaskObj.id)) {
+                        delete activeTaskObj.isFloating;
+                        appData.floatingTasks.push(activeTaskObj); // Adiciona ao final da pilha para alinhar com o voo!
+                    }
+
+                    saveData();
+                    renderHourlyGridDashboard();
+                    showToast('📌 Tarefa solta na mesa de tarefas');
+                }, 420);
+            }
+            return;
+        }
+
+        // SOLTOU DENTRO DE UM CRONOGRAMA (.timeline-grid)
+        const targetWeekId = targetGridEl.dataset.weekId;
+        const rect = targetGridEl.getBoundingClientRect();
+        const timeColWidth = isZoomOutMode ? 76 : 90;
+        const colWidth = (rect.width - timeColWidth) / 5;
+        const rowHeight = getRowHeight();
+
+        const relativeX = e.clientX - rect.left - timeColWidth;
+        const relativeY = e.clientY - rect.top;
+
+        let newDay = Math.max(1, Math.min(5, Math.floor(relativeX / colWidth) + 1));
+        let newRow = Math.max(1, Math.min(10, Math.floor(relativeY / rowHeight) + 1));
+        if (newRow === 5) newRow = 6;
+
+        const targetWeek = appData.weeks.find(w => w.id === targetWeekId);
+        const tasksInDay = targetWeek ? targetWeek.tasks.filter(t => t.id !== activeTaskObj.id && t.day === newDay) : [];
+        const tasksBelow = tasksInDay.filter(t => t.startRow >= newRow);
+
+        let maxAvailable = 10 - newRow + 1;
+        if (tasksBelow.length > 0) {
+            const nextTaskStartRow = Math.min(...tasksBelow.map(t => t.startRow));
+            maxAvailable = nextTaskStartRow - newRow;
+        }
+
+        if (maxAvailable <= 0) {
+            showToast('⚠️ Horário de destino já está ocupado.');
+            renderHourlyGridDashboard();
+            return;
+        }
+
+        const finalDuration = Math.min(activeTaskObj.duration || 1, maxAvailable);
+
+        if (!activeWeekObj || activeTaskObj.isFloating) {
+            // Veio da mesa flutuante
+            recordState();
+            if (appData.floatingTasks) {
+                appData.floatingTasks = appData.floatingTasks.filter(t => t.id !== activeTaskObj.id);
+            }
+            delete activeTaskObj.isFloating;
+            activeTaskObj.startRow = newRow;
+            activeTaskObj.day = newDay;
+            activeTaskObj.duration = finalDuration;
+
+            if (targetWeek) {
+                targetWeek.tasks.push(activeTaskObj);
+            }
+
+            saveData();
+            renderHourlyGridDashboard();
+            showToast('🚀 Tarefa encaixada no cronograma!');
+            return;
+        }
+
+        if (targetWeekId !== activeWeekObj.id && targetWeek) {
+            // Mudou de semana
+            recordState();
+            const taskIndex = activeWeekObj.tasks.findIndex(t => t.id === activeTaskObj.id);
+            if (taskIndex > -1) {
+                const [migratedTask] = activeWeekObj.tasks.splice(taskIndex, 1);
+                migratedTask.startRow = newRow;
+                migratedTask.day = newDay;
+                migratedTask.duration = finalDuration;
+                targetWeek.tasks.push(migratedTask);
+            }
+
+            saveData();
+            renderHourlyGridDashboard();
+            showToast('🚀 Tarefa movida para outra semana!');
+            return;
+        }
+
+        // Atualização normal na mesma semana
+        recordState();
+        activeTaskObj.startRow = newRow;
+        activeTaskObj.day = newDay;
+        activeTaskObj.duration = finalDuration;
+
+        saveData();
         renderHourlyGridDashboard();
+    } else if (activeTaskEl) {
+        activeTaskEl.style.opacity = '';
     }
 
     activeTaskObj = null;
@@ -1151,22 +1770,27 @@ document.getElementById('ctx-duplicate').addEventListener('click', () => {
 });
 
 document.getElementById('ctx-delete').addEventListener('click', async () => {
-    if (!selectedTaskContext) return;
-    const week = appData.weeks.find(w => w.id === selectedTaskContext.weekId);
-    if (week) {
-        const confirmed = await confirmSystemDialog(
-            'Excluir Tarefa',
-            `Tem certeza que deseja excluir "${selectedTaskContext.task.title}"?`,
-            'Sim, Excluir',
-            true
-        );
-        if (confirmed) {
-            recordState();
-            week.tasks = week.tasks.filter(t => t.id !== selectedTaskContext.task.id);
-            saveData();
-            renderHourlyGridDashboard();
-            showToast('🗑️ Tarefa excluída');
+    if (!selectedTaskContext || !selectedTaskContext.task) return;
+    
+    const confirmed = await confirmSystemDialog(
+        'Excluir Tarefa',
+        `Tem certeza que deseja excluir "${selectedTaskContext.task.title}"?`,
+        'Sim, Excluir',
+        true
+    );
+    if (confirmed) {
+        recordState();
+        if (selectedTaskContext.weekId) {
+            const week = appData.weeks.find(w => w.id === selectedTaskContext.weekId);
+            if (week) {
+                week.tasks = week.tasks.filter(t => t.id !== selectedTaskContext.task.id);
+            }
+        } else if (appData.floatingTasks) {
+            appData.floatingTasks = appData.floatingTasks.filter(t => t.id !== selectedTaskContext.task.id);
         }
+        saveData();
+        renderHourlyGridDashboard();
+        showToast('🗑️ Tarefa excluída');
     }
     hideContextMenu();
 });
@@ -1186,90 +1810,169 @@ document.querySelectorAll('.color-swatch').forEach(swatch => {
     });
 });
 
+// MOUSE POSITION TRACKER & HOVER DETECTOR FOR KEYBOARD SHORTCUTS
+let currentMouseX = 0;
+let currentMouseY = 0;
+
+window.addEventListener('mousemove', (e) => {
+    currentMouseX = e.clientX;
+    currentMouseY = e.clientY;
+});
+
+function getTaskUnderMouseOrSelected() {
+    const el = document.elementFromPoint(currentMouseX, currentMouseY);
+    if (el) {
+        const taskCard = el.closest('.task-card');
+        if (taskCard) {
+            const taskId = taskCard.dataset.taskId;
+            const weekId = taskCard.dataset.weekId;
+            if (weekId) {
+                const week = appData.weeks.find(w => w.id === weekId);
+                if (week) {
+                    const task = week.tasks.find(t => t.id === taskId);
+                    if (task) return { task, weekId };
+                }
+            } else if (appData.floatingTasks) {
+                const task = appData.floatingTasks.find(t => t.id === taskId);
+                if (task) return { task, weekId: null };
+            }
+        }
+    }
+    return selectedTaskContext;
+}
+
 // KEYBOARD SHORTCUTS (Ctrl+Z, Ctrl+Y, Ctrl+C, Ctrl+X, Ctrl+V, Delete)
 document.addEventListener('keydown', async (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
-    if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+    if (cmdOrCtrl && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
             redoAction();
         } else {
             undoAction();
         }
-    } else if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+    } else if (cmdOrCtrl && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         redoAction();
-    } else if (e.ctrlKey && e.key.toLowerCase() === 'c') {
-        if (selectedTaskContext) {
+    } else if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
+        const targetCtx = getTaskUnderMouseOrSelected();
+        if (targetCtx) {
             e.preventDefault();
             taskClipboard = {
                 action: 'copy',
-                task: JSON.parse(JSON.stringify(selectedTaskContext.task)),
-                sourceWeekId: selectedTaskContext.weekId
+                task: JSON.parse(JSON.stringify(targetCtx.task)),
+                sourceWeekId: targetCtx.weekId
             };
-            showToast('📋 Tarefa copiada (Ctrl+C)');
+            document.body.classList.add('has-clipboard');
+            showToast(`📋 Tarefa "${targetCtx.task.title}" copiada (Ctrl+C)`);
         }
-    } else if (e.ctrlKey && e.key.toLowerCase() === 'x') {
-        if (selectedTaskContext) {
+    } else if (cmdOrCtrl && e.key.toLowerCase() === 'x') {
+        const targetCtx = getTaskUnderMouseOrSelected();
+        if (targetCtx) {
             e.preventDefault();
             taskClipboard = {
                 action: 'cut',
-                task: JSON.parse(JSON.stringify(selectedTaskContext.task)),
-                sourceWeekId: selectedTaskContext.weekId
+                task: JSON.parse(JSON.stringify(targetCtx.task)),
+                sourceWeekId: targetCtx.weekId
             };
-            showToast('✂️ Tarefa recortada (Ctrl+X)');
+            document.body.classList.add('has-clipboard');
+            showToast(`✂️ Tarefa "${targetCtx.task.title}" recortada (Ctrl+X)`);
         }
-    } else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
-        if (taskClipboard) {
-            e.preventDefault();
-            const targetWeek = appData.weeks.find(w => w.id === (selectedSlotContext ? selectedSlotContext.weekId : appData.weeks[0].id));
-            if (targetWeek) {
-                const pasteDay = selectedSlotContext ? selectedSlotContext.day : 1;
-                const pasteRow = selectedSlotContext ? selectedSlotContext.row : 1;
+    } else if (cmdOrCtrl && e.key.toLowerCase() === 'v') {
+        if (!taskClipboard) {
+            showToast('⚠️ Nenhuma tarefa na área de transferência para colar.');
+            return;
+        }
+        e.preventDefault();
 
-                if (hasTaskCollision(targetWeek.id, pasteDay, pasteRow, taskClipboard.task.duration)) {
-                    showToast('⚠️ Horário de destino já está ocupado por outra tarefa.');
-                    return;
-                }
+        const elementBelow = document.elementFromPoint(currentMouseX, currentMouseY);
+        const targetGridEl = elementBelow ? elementBelow.closest('.timeline-grid') : null;
 
-                recordState();
-                if (taskClipboard.action === 'cut' && taskClipboard.sourceWeekId) {
-                    const sourceWeek = appData.weeks.find(w => w.id === taskClipboard.sourceWeekId);
-                    if (sourceWeek) {
-                        sourceWeek.tasks = sourceWeek.tasks.filter(t => t.id !== taskClipboard.task.id);
-                    }
-                }
+        if (!targetGridEl) {
+            showToast('⚠️ Posicione o ponteiro do mouse sobre um dia da grade para colar (Ctrl+V).');
+            return;
+        }
 
-                const newTask = JSON.parse(JSON.stringify(taskClipboard.task));
-                newTask.id = 't' + Date.now();
-                newTask.day = pasteDay;
-                newTask.startRow = pasteRow;
-                targetWeek.tasks.push(newTask);
-                if (taskClipboard.action === 'cut') taskClipboard = null;
+        const targetWeekId = targetGridEl.dataset.weekId;
+        const targetWeek = appData.weeks.find(w => w.id === targetWeekId);
+        if (!targetWeek) return;
 
-                saveData();
-                renderHourlyGridDashboard();
-                showToast('📋 Tarefa colada (Ctrl+V)');
+        const rect = targetGridEl.getBoundingClientRect();
+        const timeColWidth = isZoomOutMode ? 76 : 90;
+        const colWidth = (rect.width - timeColWidth) / 5;
+        const rowHeight = getRowHeight();
+
+        const relativeX = currentMouseX - rect.left - timeColWidth;
+        const relativeY = currentMouseY - rect.top;
+
+        let pasteDay = Math.max(1, Math.min(5, Math.floor(relativeX / colWidth) + 1));
+        let pasteRow = Math.max(1, Math.min(10, Math.floor(relativeY / rowHeight) + 1));
+        if (pasteRow === 5) pasteRow = 6;
+
+        // Auto-Resize check for collision
+        const tasksInDay = targetWeek.tasks.filter(t => (taskClipboard.action !== 'cut' || t.id !== taskClipboard.task.id) && t.day === pasteDay);
+        const tasksBelow = tasksInDay.filter(t => t.startRow >= pasteRow);
+
+        let maxAvailable = 10 - pasteRow + 1;
+        if (tasksBelow.length > 0) {
+            const nextTaskStartRow = Math.min(...tasksBelow.map(t => t.startRow));
+            maxAvailable = nextTaskStartRow - pasteRow;
+        }
+
+        if (maxAvailable <= 0) {
+            showToast('⚠️ Horário sob o cursor já está ocupado por outra tarefa.');
+            return;
+        }
+
+        const finalDuration = Math.min(taskClipboard.task.duration, maxAvailable);
+
+        recordState();
+
+        if (taskClipboard.action === 'cut' && taskClipboard.sourceWeekId) {
+            const sourceWeek = appData.weeks.find(w => w.id === taskClipboard.sourceWeekId);
+            if (sourceWeek) {
+                sourceWeek.tasks = sourceWeek.tasks.filter(t => t.id !== taskClipboard.task.id);
             }
         }
+
+        const newTask = JSON.parse(JSON.stringify(taskClipboard.task));
+        newTask.id = 't' + Date.now();
+        newTask.day = pasteDay;
+        newTask.startRow = pasteRow;
+        newTask.duration = finalDuration;
+
+        targetWeek.tasks.push(newTask);
+
+        if (taskClipboard.action === 'cut') {
+            taskClipboard = null;
+            document.body.classList.remove('has-clipboard');
+        }
+
+        saveData();
+        renderHourlyGridDashboard();
+        showToast(`📋 Tarefa "${newTask.title}" colada sob o ponteiro do mouse!`);
     } else if (e.key === 'Delete') {
-        if (selectedTaskContext) {
+        const targetCtx = getTaskUnderMouseOrSelected();
+        if (targetCtx) {
             e.preventDefault();
-            const week = appData.weeks.find(w => w.id === selectedTaskContext.weekId);
+            const week = appData.weeks.find(w => w.id === targetCtx.weekId);
             if (week) {
                 const confirmed = await confirmSystemDialog(
                     'Excluir Tarefa',
-                    `Tem certeza que deseja excluir "${selectedTaskContext.task.title}"?`,
+                    `Tem certeza que deseja excluir "${targetCtx.task.title}"?`,
                     'Sim, Excluir',
                     true
                 );
                 if (confirmed) {
                     recordState();
-                    week.tasks = week.tasks.filter(t => t.id !== selectedTaskContext.task.id);
+                    week.tasks = week.tasks.filter(t => t.id !== targetCtx.task.id);
                     saveData();
                     renderHourlyGridDashboard();
-                    showToast('🗑️ Tarefa excluída (Del)');
+                    showToast('🗑️ Tarefa excluída');
                 }
             }
         }
@@ -1308,8 +2011,48 @@ function populateModalSelects() {
     });
 }
 
+function selectModalCategorySwatch(cat) {
+    const hiddenSelect = document.getElementById('task-category');
+    if (hiddenSelect) hiddenSelect.value = cat;
+    
+    document.querySelectorAll('.category-swatches-grid .swatch-btn').forEach(btn => {
+        if (btn.dataset.cat === cat) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+}
+
+function selectModalDurationChip(dur) {
+    const hiddenSelect = document.getElementById('task-duration-select');
+    if (hiddenSelect) hiddenSelect.value = String(dur);
+
+    document.querySelectorAll('.duration-chips-group .dur-chip-btn').forEach(btn => {
+        if (btn.dataset.dur === String(dur)) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+}
+
+function updateModalContextBadge() {
+    const weekId = document.getElementById('task-week-select')?.value;
+    const day = parseInt(document.getElementById('task-day-select')?.value || 1);
+    const timeStr = document.getElementById('task-time-select')?.value || '08:00';
+    const badgeTextEl = document.getElementById('task-context-badge-text');
+
+    const weekObj = appData.weeks.find(w => w.id === weekId);
+    const weekTitle = weekObj ? weekObj.title : 'Semana';
+    const dayName = getDayName(day);
+
+    if (badgeTextEl) {
+        badgeTextEl.textContent = `🗓️ ${weekTitle} · ${dayName} · ${timeStr}`;
+    }
+}
+
 function openModal(task = null, weekId = null, presetDay = null, presetRow = null) {
     populateModalSelects();
+
+    const advPanel = document.getElementById('task-advanced-panel');
+    const advToggleBtn = document.getElementById('btn-toggle-task-advanced');
+    if (advPanel) advPanel.classList.add('hidden');
+    if (advToggleBtn) advToggleBtn.classList.remove('active');
 
     if (task) {
         editingTaskId = task.id;
@@ -1321,8 +2064,9 @@ function openModal(task = null, weekId = null, presetDay = null, presetRow = nul
         document.getElementById('task-week-select').value = weekId;
         document.getElementById('task-day-select').value = task.day;
         document.getElementById('task-time-select').value = rowToTime(task.startRow);
-        document.getElementById('task-duration-select').value = task.duration;
-        document.getElementById('task-category').value = task.category;
+        
+        selectModalDurationChip(task.duration);
+        selectModalCategorySwatch(task.category);
         document.getElementById('btn-delete-task').style.display = 'block';
     } else {
         editingTaskId = null;
@@ -1334,12 +2078,18 @@ function openModal(task = null, weekId = null, presetDay = null, presetRow = nul
         document.getElementById('task-week-select').value = editingWeekId;
         document.getElementById('task-day-select').value = presetDay || 1;
         document.getElementById('task-time-select').value = presetRow ? rowToTime(presetRow) : '08:00';
-        document.getElementById('task-duration-select').value = '1';
-        document.getElementById('task-category').value = 'cat-routine';
+
+        selectModalDurationChip(1);
+        selectModalCategorySwatch('cat-hvac');
         document.getElementById('btn-delete-task').style.display = 'none';
     }
 
+    updateModalContextBadge();
     modal.classList.remove('hidden');
+
+    setTimeout(() => {
+        document.getElementById('task-title')?.focus();
+    }, 60);
 }
 
 const btnAddTask = document.getElementById('btn-add-task');
@@ -1448,46 +2198,6 @@ document.getElementById('btn-add-week').addEventListener('click', () => {
             setTimeout(() => newWeekEl.classList.remove('week-card-highlight'), 1500);
         }
     }, 50);
-});
-
-document.getElementById('btn-export').addEventListener('click', () => {
-    const exportBtn = document.getElementById('btn-export');
-    const originalText = exportBtn.innerHTML;
-    exportBtn.innerHTML = '⌛ Gerando PDF...';
-    exportBtn.disabled = true;
-
-    document.body.classList.add('pdf-export-mode');
-
-    const element = document.querySelector('.month-schedule-viewport');
-    
-    const opt = {
-        margin:       [5, 5, 5, 5],
-        filename:     `Cronograma_BHE_ES_Claudius.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        enableLinks:  true,
-        html2canvas:  { 
-            scale: 2, 
-            useCORS: true,
-            logging: false,
-            scrollX: 0,
-            scrollY: 0
-        },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak:    { mode: ['css', 'legacy'], avoid: '.week-card' }
-    };
-
-    html2pdf().set(opt).from(element).save().then(() => {
-        document.body.classList.remove('pdf-export-mode');
-        exportBtn.innerHTML = originalText;
-        exportBtn.disabled = false;
-        applyCategoryFilter();
-    }).catch(err => {
-        console.error(err);
-        document.body.classList.remove('pdf-export-mode');
-        exportBtn.innerHTML = originalText;
-        exportBtn.disabled = false;
-        applyCategoryFilter();
-    });
 });
 
 // Category Filtering (Fluid Focus / Translucency)
@@ -1652,12 +2362,23 @@ function toggleDarkMode(event) {
     const themeBtn = document.getElementById('btn-theme-toggle');
     if (themeBtn) {
         themeBtn.classList.add('theme-spin');
-        setTimeout(() => themeBtn.classList.remove('theme-spin'), 750);
+        setTimeout(() => themeBtn.classList.remove('theme-spin'), 300);
     }
 
-    if (document.startViewTransition && event && event.clientX) {
-        const x = event.clientX;
-        const y = event.clientY;
+    if (document.startViewTransition) {
+        let x, y;
+        if (themeBtn) {
+            const rect = themeBtn.getBoundingClientRect();
+            x = rect.left + rect.width / 2;
+            y = rect.top + rect.height / 2;
+        } else if (event && event.clientX) {
+            x = event.clientX;
+            y = event.clientY;
+        } else {
+            x = window.innerWidth / 2;
+            y = window.innerHeight / 2;
+        }
+
         const endRadius = Math.hypot(
             Math.max(x, window.innerWidth - x),
             Math.max(y, window.innerHeight - y)
@@ -1668,20 +2389,17 @@ function toggleDarkMode(event) {
         });
 
         transition.ready.then(() => {
-            const clipPath = [
-                `circle(0px at ${x}px ${y}px)`,
-                `circle(${endRadius}px at ${x}px ${y}px)`
-            ];
             document.documentElement.animate(
                 {
-                    clipPath: isDarkMode ? clipPath.reverse() : clipPath
+                    clipPath: [
+                        `circle(0px at ${x}px ${y}px)`,
+                        `circle(${endRadius}px at ${x}px ${y}px)`
+                    ]
                 },
                 {
-                    duration: 1150,
+                    duration: 650,
                     easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-                    pseudoElement: isDarkMode
-                        ? '::view-transition-old(root)'
-                        : '::view-transition-new(root)'
+                    pseudoElement: '::view-transition-new(root)'
                 }
             );
         });
@@ -1784,8 +2502,191 @@ function updateTooltipPosition(e) {
     glassTooltip.style.top = `${Math.max(10, y)}px`;
 }
 
+function setupProfileSelectorListeners() {
+    const brandBtn = document.getElementById('btn-profile-selector');
+    if (brandBtn) {
+        brandBtn.addEventListener('click', (e) => {
+            toggleProfileDropdown(e);
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#btn-profile-selector')) {
+            closeProfileDropdown();
+        }
+    });
+
+    const btnCreate = document.getElementById('btn-action-create-profile');
+    if (btnCreate) {
+        btnCreate.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeProfileDropdown();
+            openModalNewProfile();
+        });
+    }
+
+    const btnDuplicate = document.getElementById('btn-action-duplicate-profile');
+    if (btnDuplicate) {
+        btnDuplicate.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeProfileDropdown();
+            duplicateProfile(multiProfileStore.activeProfileId);
+        });
+    }
+
+    const modalNewProf = document.getElementById('modal-new-profile');
+    const btnCloseNewProfX = document.getElementById('btn-close-new-profile-x');
+    const btnCancelNewProf = document.getElementById('btn-cancel-new-profile');
+    const btnSaveNewProf = document.getElementById('btn-save-new-profile');
+
+    function openModalNewProfile() {
+        if (!modalNewProf) return;
+        document.getElementById('new-profile-name').value = '';
+        document.getElementById('new-profile-sub').value = '';
+        modalNewProf.classList.remove('hidden');
+        setTimeout(() => {
+            document.getElementById('new-profile-name')?.focus();
+        }, 50);
+    }
+
+    function closeModalNewProfile() {
+        if (modalNewProf) modalNewProf.classList.add('hidden');
+    }
+
+    if (btnCloseNewProfX) btnCloseNewProfX.addEventListener('click', closeModalNewProfile);
+    if (btnCancelNewProf) btnCancelNewProf.addEventListener('click', closeModalNewProfile);
+    
+    const titleEl = document.getElementById('active-profile-title');
+    const subEl = document.getElementById('active-profile-subtitle');
+
+    if (titleEl) {
+        titleEl.addEventListener('click', (e) => e.stopPropagation());
+        titleEl.addEventListener('blur', () => {
+            const newName = titleEl.textContent.trim() || 'BHE ES';
+            titleEl.textContent = newName;
+            const active = getActiveProfile();
+            if (active && active.name !== newName) {
+                recordState();
+                active.name = newName;
+                saveData();
+                document.title = `${newName} | Cronograma de Manutenção`;
+                showToast(`✏️ Cronograma renomeado para "${newName}"`);
+            }
+        });
+        titleEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                titleEl.blur();
+            }
+        });
+    }
+
+    if (subEl) {
+        subEl.addEventListener('click', (e) => e.stopPropagation());
+        subEl.addEventListener('blur', () => {
+            const newSub = subEl.textContent.trim() || 'ESPÍRITO SANTO N°1000';
+            subEl.textContent = newSub;
+            const active = getActiveProfile();
+            if (active && active.subtitle !== newSub) {
+                recordState();
+                active.subtitle = newSub;
+                saveData();
+                showToast('✏️ Subtítulo da unidade atualizado');
+            }
+        });
+        subEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                subEl.blur();
+            }
+        });
+    }
+
+    if (btnSaveNewProf) {
+        btnSaveNewProf.addEventListener('click', () => {
+            const name = document.getElementById('new-profile-name').value;
+            const sub = document.getElementById('new-profile-sub').value;
+            if (!name.trim()) {
+                showToast('⚠️ Por favor digite o nome do novo cronograma.');
+                return;
+            }
+            createNewProfile(name, sub);
+            closeModalNewProfile();
+        });
+    }
+}
+
+function setupTaskModalListeners() {
+    document.querySelectorAll('.category-swatches-grid .swatch-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectModalCategorySwatch(btn.dataset.cat);
+        });
+    });
+
+    document.querySelectorAll('.duration-chips-group .dur-chip-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectModalDurationChip(btn.dataset.dur);
+        });
+    });
+
+    const advToggleBtn = document.getElementById('btn-toggle-task-advanced');
+    const advPanel = document.getElementById('task-advanced-panel');
+    if (advToggleBtn && advPanel) {
+        advToggleBtn.addEventListener('click', () => {
+            const isHidden = advPanel.classList.contains('hidden');
+            if (isHidden) {
+                advPanel.classList.remove('hidden');
+                advToggleBtn.classList.add('active');
+            } else {
+                advPanel.classList.add('hidden');
+                advToggleBtn.classList.remove('active');
+            }
+        });
+    }
+
+    ['task-week-select', 'task-day-select', 'task-time-select'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', updateModalContextBadge);
+    });
+}
+
+const CURRENT_APP_VERSION = 'v.0.0.7';
+
+function setupWhatsNewModal() {
+    const modal = document.getElementById('modal-whats-new');
+    const btnCloseX = document.getElementById('btn-close-whats-new-x');
+    const btnClose = document.getElementById('btn-close-whats-new');
+    const btnFooterOpen = document.getElementById('btn-open-whats-new');
+
+    function openWhatsNew() {
+        if (!modal) return;
+        modal.classList.remove('hidden');
+    }
+
+    function closeWhatsNew() {
+        if (!modal) return;
+        modal.classList.add('hidden');
+        localStorage.setItem('mgcen00_last_version_seen', CURRENT_APP_VERSION);
+    }
+
+    if (btnCloseX) btnCloseX.addEventListener('click', closeWhatsNew);
+    if (btnClose) btnClose.addEventListener('click', closeWhatsNew);
+    if (btnFooterOpen) btnFooterOpen.addEventListener('click', openWhatsNew);
+
+    // Exibe apenas no primeiro acesso do usuário
+    const lastSeenVersion = localStorage.getItem('mgcen00_last_version_seen');
+    if (lastSeenVersion !== CURRENT_APP_VERSION) {
+        setTimeout(() => {
+            openWhatsNew();
+        }, 150);
+    }
+}
+
 // Init
 loadData();
+setupProfileSelectorListeners();
+setupTaskModalListeners();
+setupWhatsNewModal();
 applyZoomOutState();
 setupThemeController();
 renderHourlyGridDashboard();
@@ -1794,6 +2695,261 @@ setupZoomController();
 
 // Sincronização imediata na nuvem ao carregar a página
 syncFromCloud(true);
+
+// ==========================================================================
+// MOTOR DE EXPORTAÇÃO PDF EXECUTIVO (A4 LANDSCAPE TABLE SYSTEM - 2 WEEKS/PAGE)
+// ==========================================================================
+function getCategoryLabel(catClass) {
+    const categoriesMap = {
+        'cat-hvac': 'HVAC',
+        'cat-elec': 'Elétrica',
+        'cat-routine': 'Rotina',
+        'cat-purple': 'Infratel',
+        'cat-pink': 'Relatórios',
+        'cat-orange': 'Corretiva',
+        'cat-cyan': 'Refrigeração',
+        'cat-teal': 'Hidráulica',
+        'cat-indigo': 'Especial'
+    };
+    return categoriesMap[catClass] || 'Manutenção';
+}
+
+let currentSelectedPdfMode = '2weeks';
+
+function buildExecutivePrintSheet(weeksPerPageMode = currentSelectedPdfMode) {
+    try {
+        // Garantir que tooltips e menus flutuantes sejam escondidos imediatamente
+        const floatingTooltip = document.getElementById('task-floating-tooltip');
+        if (floatingTooltip) floatingTooltip.classList.add('hidden');
+
+        const contextMenu = document.getElementById('custom-context-menu');
+        if (contextMenu) contextMenu.classList.add('hidden');
+
+        let existingSheet = document.getElementById('executive-pdf-print-sheet');
+        if (existingSheet) existingSheet.remove();
+
+        const activeProfile = getActiveProfile();
+        const weeks = activeProfile ? (activeProfile.weeks || []) : [];
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        let totalTasksCount = 0;
+        weeks.forEach(w => totalTasksCount += (w.tasks ? w.tasks.length : 0));
+
+        const printContainer = document.createElement('div');
+        printContainer.id = 'executive-pdf-print-sheet';
+        printContainer.className = `executive-pdf-print-sheet mode-${weeksPerPageMode}`;
+
+        const perPage = (weeksPerPageMode === '1week') ? 1 : 2;
+        const pagesCount = Math.ceil(weeks.length / perPage) || 1;
+
+        for (let p = 0; p < pagesCount; p++) {
+            const pageWeeks = weeks.slice(p * perPage, p * perPage + perPage);
+            const pageEl = document.createElement('div');
+            pageEl.className = `pdf-page-container mode-${weeksPerPageMode}`;
+
+            let headerHtml = '';
+            if (p === 0) {
+                headerHtml = `
+                    <div class="pdf-exec-header">
+                        <div class="pdf-exec-title-row">
+                            <div>
+                                <h1 class="pdf-doc-title">CRONOGRAMA DE MANUTENÇÃO PREVENTIVA E CORRETIVA</h1>
+                                <div class="pdf-doc-sub">UNIDADE: <strong>${escapeHtml(activeProfile.name || 'BHE ES')}</strong> &nbsp;·&nbsp; ${escapeHtml(activeProfile.subtitle || 'ESPÍRITO SANTO N°1000')}</div>
+                            </div>
+                            <div class="pdf-doc-meta">
+                                <span class="pdf-meta-tag">EMISSÃO: ${formattedDate}</span>
+                                <span class="pdf-meta-tag">TOTAL: ${totalTasksCount} MANUTENÇÕES</span>
+                                <span class="pdf-meta-tag">${weeks.length} SEMANAS</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                headerHtml = `
+                    <div class="pdf-exec-header compact">
+                        <div class="pdf-exec-title-row">
+                            <span class="pdf-doc-sub">UNIDADE: <strong>${escapeHtml(activeProfile.name || 'BHE ES')}</strong> &nbsp;·&nbsp; RELATÓRIO EXECUTIVO DE MANUTENÇÃO</span>
+                            <span class="pdf-meta-tag">PÁGINA ${p + 1} DE ${pagesCount}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let weeksHtml = '<div class="pdf-weeks-stack">';
+            pageWeeks.forEach((week, indexOnPage) => {
+                const actualWeekNum = (p * perPage) + indexOnPage + 1;
+                weeksHtml += `
+                    <div class="pdf-week-card">
+                        <div class="pdf-week-header">
+                            <span class="pdf-week-badge">SEMANA ${actualWeekNum}</span>
+                            <h3 class="pdf-week-title">${escapeHtml(week.title || `Semana ${actualWeekNum}`)}</h3>
+                            <span class="pdf-week-count">${week.tasks ? week.tasks.length : 0} manutenções</span>
+                        </div>
+                        <table class="pdf-grid-table">
+                            <thead>
+                                <tr>
+                                    <th class="pdf-col-time">HORÁRIO</th>
+                                    <th>SEG (01)</th>
+                                    <th>TER (02)</th>
+                                    <th>QUA (03)</th>
+                                    <th>QUI (04)</th>
+                                    <th>SEX (05)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                TIME_SLOTS.forEach(slot => {
+                    if (slot.row === 5) {
+                        weeksHtml += `
+                            <tr class="pdf-lunch-row">
+                                <td class="pdf-col-time">${slot.time}</td>
+                                <td colspan="5" class="pdf-lunch-cell">☕ REFEIÇÃO / INTERVALO ALMOÇO (12:00 - 13:00)</td>
+                            </tr>
+                        `;
+                    } else {
+                        weeksHtml += `<tr><td class="pdf-col-time">${slot.time}</td>`;
+                        for (let day = 1; day <= 5; day++) {
+                            const tasksInWeek = week.tasks || [];
+                            
+                            const activeTask = tasksInWeek.find(t => {
+                                if (t.day !== day) return false;
+                                if (slot.row === 5) return false;
+
+                                if (t.startRow < 5) {
+                                    const morningHours = 5 - t.startRow;
+                                    if ((t.duration || 1) <= morningHours) {
+                                        if (slot.row > 5) return false;
+                                        return slot.row >= t.startRow && slot.row <= (t.startRow + (t.duration || 1) - 1);
+                                    } else {
+                                        if (slot.row < 5) {
+                                            return slot.row >= t.startRow && slot.row <= 4;
+                                        } else {
+                                            const afternoonHours = (t.duration || 1) - morningHours;
+                                            const afternoonEndRow = 5 + afternoonHours;
+                                            return slot.row >= 6 && slot.row <= afternoonEndRow;
+                                        }
+                                    }
+                                } else {
+                                    if (slot.row < 5) return false;
+                                    return slot.row >= t.startRow && slot.row <= (t.startRow + (t.duration || 1) - 1);
+                                }
+                            });
+
+                            if (activeTask) {
+                                const isStart = (activeTask.startRow === slot.row) || (slot.row === 6 && activeTask.startRow < 5);
+                                const catClass = activeTask.category || 'cat-hvac';
+                                const catLabel = getCategoryLabel(catClass);
+
+                                if (isStart) {
+                                    weeksHtml += `
+                                        <td class="pdf-task-cell ${catClass} task-start">
+                                            <div class="pdf-task-box">
+                                                <div class="pdf-task-top">
+                                                    <span class="pdf-task-time">${activeTask.startTime || '08:00'} (${activeTask.duration || 1}h)</span>
+                                                    <span class="pdf-task-cat">${catLabel}</span>
+                                                </div>
+                                                <strong class="pdf-task-title">${escapeHtml(activeTask.title || 'Manutenção')}</strong>
+                                                ${activeTask.description ? `<p class="pdf-task-desc">${escapeHtml(activeTask.description)}</p>` : ''}
+                                            </div>
+                                        </td>
+                                    `;
+                                } else {
+                                    weeksHtml += `
+                                        <td class="pdf-task-cell ${catClass} task-cont">
+                                            <div class="pdf-task-cont-box">
+                                                <span class="pdf-task-cont-line">↕ ${escapeHtml(activeTask.title || 'Manutenção')}</span>
+                                            </div>
+                                        </td>
+                                    `;
+                                }
+                            } else {
+                                weeksHtml += `<td class="pdf-empty-cell"></td>`;
+                            }
+                        }
+                        weeksHtml += `</tr>`;
+                    }
+                });
+
+                weeksHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            });
+            weeksHtml += '</div>';
+
+            const footerHtml = `
+                <div class="pdf-page-footer">
+                    <div>Desenvolvido e Projetado por <strong>Claudius Rangel</strong> &nbsp;•&nbsp; EQS ENGENHARIA · Claro Infra MG</div>
+                    <div>UNIDADE ${escapeHtml(activeProfile.name || 'BHE ES')} &nbsp;•&nbsp; v.0.0.7 &nbsp;•&nbsp; Página ${p + 1} de ${pagesCount}</div>
+                </div>
+            `;
+
+            pageEl.innerHTML = headerHtml + weeksHtml + footerHtml;
+            printContainer.appendChild(pageEl);
+        }
+
+        document.body.appendChild(printContainer);
+    } catch (err) {
+        console.error('Erro ao construir folha do PDF:', err);
+    }
+}
+
+function generateExecutivePDF(mode = currentSelectedPdfMode) {
+    currentSelectedPdfMode = mode;
+    showToast(`📄 Gerando PDF executivo (${mode === '1week' ? '1 Semana por Página' : '2 Semanas por Página'})...`);
+    buildExecutivePrintSheet(mode);
+    setTimeout(() => {
+        window.print();
+    }, 150);
+}
+
+// Global print event handlers
+window.addEventListener('beforeprint', () => {
+    buildExecutivePrintSheet(currentSelectedPdfMode);
+});
+
+window.addEventListener('afterprint', () => {
+    const sheet = document.getElementById('executive-pdf-print-sheet');
+    if (sheet) sheet.remove();
+});
+
+// CONTROLADOR DO MENU DROPDOWN DE EXPORTAÇÃO PDF DO BOTÃO
+const exportPdfDropdownMenu = document.getElementById('export-pdf-dropdown-menu');
+const btnExportPdf = document.getElementById('btn-export');
+const optPdf2weeks = document.getElementById('opt-pdf-2weeks');
+const optPdf1week = document.getElementById('opt-pdf-1week');
+
+if (btnExportPdf && exportPdfDropdownMenu) {
+    btnExportPdf.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exportPdfDropdownMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!exportPdfDropdownMenu.contains(e.target) && e.target !== btnExportPdf) {
+            exportPdfDropdownMenu.classList.add('hidden');
+        }
+    });
+}
+
+if (optPdf2weeks) {
+    optPdf2weeks.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (exportPdfDropdownMenu) exportPdfDropdownMenu.classList.add('hidden');
+        generateExecutivePDF('2weeks');
+    });
+}
+
+if (optPdf1week) {
+    optPdf1week.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (exportPdfDropdownMenu) exportPdfDropdownMenu.classList.add('hidden');
+        generateExecutivePDF('1week');
+    });
+}
 
 // Listener de clique no selo de nuvem para sincronização manual
 const cloudBadge = document.getElementById('cloud-sync-badge');
@@ -1815,3 +2971,29 @@ setInterval(() => {
         syncFromCloud(true);
     }
 }, 45000);
+
+// ATALHOS GLOBAIS DE TECLADO & LIMPEZA DE ARRASTO AO PERDER FOCO
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeProfileDropdown();
+
+        const exportDropdown = document.getElementById('export-pdf-dropdown-menu');
+        if (exportDropdown) exportDropdown.classList.add('hidden');
+
+        const floatingTooltip = document.getElementById('task-floating-tooltip');
+        if (floatingTooltip) floatingTooltip.classList.add('hidden');
+
+        const ctxMenu = document.getElementById('custom-context-menu');
+        if (ctxMenu) ctxMenu.classList.add('hidden');
+    }
+});
+
+window.addEventListener('blur', () => {
+    const activeDrag = document.getElementById('active-drag-proxy');
+    if (activeDrag) activeDrag.remove();
+
+    const flyingClone = document.getElementById('flying-task-clone');
+    if (flyingClone) flyingClone.remove();
+
+    document.body.classList.remove('is-dragging-task');
+});
