@@ -138,7 +138,7 @@ function ensureMultiProfileStructure(storedObj) {
         });
     } else {
         let baseTitle = (storedObj && storedObj.title && storedObj.title !== 'Cronograma Geral de Manutenção Preventiva') ? storedObj.title : 'BHE ES';
-        const baseSub = (storedObj && storedObj.subtitle) ? storedObj.subtitle : 'ESPÍRITO SANTO N°1000';
+        const baseSub = (storedObj && storedObj.subtitle && !storedObj.subtitle.includes('ESPÍRITO SANTO')) ? storedObj.subtitle : 'Unidade CEM EP';
         const baseWeeks = (storedObj && Array.isArray(storedObj.weeks) && storedObj.weeks.length > 0) ? storedObj.weeks : defaultData.weeks;
         const baseFloating = (storedObj && Array.isArray(storedObj.floatingTasks)) ? storedObj.floatingTasks : [];
 
@@ -160,6 +160,9 @@ function ensureMultiProfileStructure(storedObj) {
     if (!active) {
         active = multiProfileStore.profiles[0];
         multiProfileStore.activeProfileId = active.id;
+    }
+    if (active && (!active.subtitle || active.subtitle.includes('ESPÍRITO SANTO'))) {
+        active.subtitle = 'Unidade CEM EP';
     }
     appData = active;
 }
@@ -2682,6 +2685,35 @@ function setupWhatsNewModal() {
     }
 }
 
+function setupStagingCollapse() {
+    const area = document.getElementById('floating-staging-area');
+    const btnToggle = document.getElementById('btn-toggle-staging-collapse');
+    const header = area ? area.querySelector('.staging-header') : null;
+    if (!area) return;
+
+    const isCollapsed = localStorage.getItem('cronogramas_staging_collapsed') === 'true';
+    if (isCollapsed) {
+        area.classList.add('is-collapsed');
+    }
+
+    function toggleCollapse(e) {
+        if (e) e.stopPropagation();
+        area.classList.toggle('is-collapsed');
+        const nowCollapsed = area.classList.contains('is-collapsed');
+        localStorage.setItem('cronogramas_staging_collapsed', nowCollapsed ? 'true' : 'false');
+    }
+
+    if (btnToggle) {
+        btnToggle.addEventListener('click', toggleCollapse);
+    }
+    if (header) {
+        header.addEventListener('click', (e) => {
+            if (e.target.closest('#btn-toggle-staging-collapse')) return;
+            toggleCollapse(e);
+        });
+    }
+}
+
 // Init
 loadData();
 setupProfileSelectorListeners();
@@ -2692,6 +2724,7 @@ setupThemeController();
 renderHourlyGridDashboard();
 setupCategoryFilters();
 setupZoomController();
+setupStagingCollapse();
 
 // Sincronização imediata na nuvem ao carregar a página
 syncFromCloud(true);
